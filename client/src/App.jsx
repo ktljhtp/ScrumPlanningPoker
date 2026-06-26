@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { SocketProvider } from './context/SocketContext';
 import api from './api/http';
 import JoinPage from './pages/JoinPage';
 import AdminPage from './pages/AdminPage';

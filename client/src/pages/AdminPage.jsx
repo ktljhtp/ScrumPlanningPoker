@@ -1,8 +1,10 @@
 import { useState, useEffect } from 'react';
-import socket from '../api/socket';
 import ParticipantList from '../components/ParticipantList';
+import { useSocket } from '../context/SocketContext';
 
 export default function AdminPage({ roomCode }) {
+  const { socket } = useSocket();
+
   const [status, setStatus] = useState('waiting');
   const [participants, setParticipants] = useState([]);
   const [votedCount, setVotedCount] = useState(0);
@@ -14,61 +16,75 @@ export default function AdminPage({ roomCode }) {
   const joinUrl = `${window.location.origin}/join/${roomCode}`;
 
   useEffect(() => {
-    socket.connect();
     socket.emit('join_room', { roomCode, name: 'Admin' });
 
-    socket.on('room_joined', (data) => {
+    const onRoomJoined = (data) => {
       setStatus(data.status);
       setQuorum(data.quorum);
       setQuorumInput(String(data.quorum));
       setParticipants(data.participants);
-    });
+    };
 
-    socket.on('participant_joined', ({ name }) => {
+    const onParticipantJoined = ({ name }) => {
       setParticipants(prev => [...prev, { name, hasVoted: false }]);
-    });
+    };
 
-    socket.on('participant_left', ({ name }) => {
+    const onParticipantLeft = ({ name }) => {
       setParticipants(prev => prev.filter(p => p.name !== name));
-    });
+    };
 
-    socket.on('vote_cast', ({ votedCount: vc, quorum: q }) => {
+    const onVoteCast = ({ votedCount: vc, quorum: q, voterName }) => {
       setVotedCount(vc);
       setQuorum(q);
-      // Помечаем N первых как проголосовавших (порядок не известен серверу)
-      setParticipants(prev => prev.map((p, i) => i < vc ? { ...p, hasVoted: true } : p));
-    });
+      // используем имя проголосовавшего (баг 8 — если сервер его шлёт)
+      // иначе просто обновляем счётчик, не трогая массив
+      if (voterName) {
+        setParticipants(prev =>
+          prev.map(p => p.name === voterName ? { ...p, hasVoted: true } : p)
+        );
+      }
+    };
 
-    socket.on('round_started', ({ quorum: q }) => {
+    const onRoundStarted = ({ quorum: q }) => {
       setStatus('active');
       setQuorum(q);
       setVotedCount(0);
       setResult(null);
       setAllVotes(null);
       setParticipants(prev => prev.map(p => ({ ...p, hasVoted: false, vote: undefined })));
-    });
+    };
 
-    socket.on('round_stopped', ({ result: r, allVotes: av }) => {
+    const onRoundStopped = ({ result: r, allVotes: av }) => {
       setStatus('stopped');
       setResult(r);
       setAllVotes(av);
-    });
+    };
 
-    socket.on('new_round_ready', () => {
+    const onNewRoundReady = () => {
       setStatus('waiting');
       setResult(null);
       setAllVotes(null);
       setVotedCount(0);
-    });
+    };
+
+    socket.on('room_joined', onRoomJoined);
+    socket.on('participant_joined', onParticipantJoined);
+    socket.on('participant_left', onParticipantLeft);
+    socket.on('vote_cast', onVoteCast);
+    socket.on('round_started', onRoundStarted);
+    socket.on('round_stopped', onRoundStopped);
+    socket.on('new_round_ready', onNewRoundReady);
 
     return () => {
-      socket.off('room_joined'); socket.off('participant_joined');
-      socket.off('participant_left'); socket.off('vote_cast');
-      socket.off('round_started'); socket.off('round_stopped');
-      socket.off('new_round_ready');
-      socket.disconnect();
+      socket.off('room_joined', onRoomJoined);
+      socket.off('participant_joined', onParticipantJoined);
+      socket.off('participant_left', onParticipantLeft);
+      socket.off('vote_cast', onVoteCast);
+      socket.off('round_started', onRoundStarted);
+      socket.off('round_stopped', onRoundStopped);
+      socket.off('new_round_ready', onNewRoundReady);
     };
-  }, [roomCode]);
+  }, [roomCode, socket]);
 
   function startRound() {
     socket.emit('start_round', { roomCode, quorum: Number(quorumInput) });
@@ -91,7 +107,7 @@ export default function AdminPage({ roomCode }) {
         <p style={styles.code}>{roomCode}</p>
         <p style={styles.link}>{joinUrl}</p>
         <button style={styles.copyBtn} onClick={() => navigator.clipboard.writeText(joinUrl)}>
-          📋 Скопировать ссылку
+          Скопировать ссылку
         </button>
       </div>
 
@@ -117,21 +133,21 @@ export default function AdminPage({ roomCode }) {
           onClick={startRound}
           disabled={status === 'active'}
         >
-          ▶ Старт раунда
+          Старт раунда
         </button>
         <button
           style={{ ...styles.btn, background: '#ef4444' }}
           onClick={stopRound}
           disabled={status !== 'active'}
         >
-          ■ Стоп (вручную)
+          Стоп (вручную)
         </button>
         <button
           style={{ ...styles.btn, background: '#64748b' }}
           onClick={newRound}
           disabled={status === 'active'}
         >
-          ↺ Новый раунд
+          Новый раунд
         </button>
       </div>
 

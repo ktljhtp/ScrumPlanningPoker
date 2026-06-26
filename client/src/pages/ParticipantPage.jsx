@@ -1,63 +1,64 @@
 import { useState, useEffect } from 'react';
-import socket from '../api/socket';
-import api from '../api/http';
 import CardDeck from '../components/CardDeck';
-
-const DECK = [0, 1, 2, 3, 5, 8, 13, 20, 40, 100, '?', '∞'];
+import { useSocket } from '../context/SocketContext';
 
 export default function ParticipantPage({ roomCode, name }) {
-  const [status, setStatus] = useState('waiting'); // waiting | active | stopped
+  const { socket } = useSocket();
+
+  const [status, setStatus] = useState('waiting');
   const [selected, setSelected] = useState(null);
   const [hasVoted, setHasVoted] = useState(false);
   const [votedCount, setVotedCount] = useState(0);
   const [quorum, setQuorum] = useState('?');
   const [result, setResult] = useState(null);
+  const [deck, setDeck] = useState([]);
 
   useEffect(() => {
-    socket.connect();
     socket.emit('join_room', { roomCode, name });
 
-    socket.on('room_joined', (data) => {
+    const onRoomJoined = (data) => {
       setStatus(data.status);
       setQuorum(data.quorum);
       setHasVoted(data.hasVoted);
-    });
-
-    socket.on('round_started', ({ quorum: q }) => {
+      setDeck(data.deck); // баг 9: берём деку с сервера
+    };
+    const onRoundStarted = ({ quorum: q }) => {
       setStatus('active');
       setQuorum(q);
       setSelected(null);
       setHasVoted(false);
       setResult(null);
       setVotedCount(0);
-    });
-
-    socket.on('vote_cast', ({ votedCount: vc, quorum: q }) => {
+    };
+    const onVoteCast = ({ votedCount: vc, quorum: q }) => {
       setVotedCount(vc);
       setQuorum(q);
-    });
-
-    socket.on('round_stopped', ({ result: r }) => {
+    };
+    const onRoundStopped = ({ result: r }) => {
       setStatus('stopped');
       setResult(r);
-    });
-
-    socket.on('new_round_ready', () => {
+    };
+    const onNewRoundReady = () => {
       setStatus('waiting');
       setSelected(null);
       setHasVoted(false);
       setResult(null);
-    });
+    };
+
+    socket.on('room_joined', onRoomJoined);
+    socket.on('round_started', onRoundStarted);
+    socket.on('vote_cast', onVoteCast);
+    socket.on('round_stopped', onRoundStopped);
+    socket.on('new_round_ready', onNewRoundReady);
 
     return () => {
-      socket.off('room_joined');
-      socket.off('round_started');
-      socket.off('vote_cast');
-      socket.off('round_stopped');
-      socket.off('new_round_ready');
-      socket.disconnect();
+      socket.off('room_joined', onRoomJoined);
+      socket.off('round_started', onRoundStarted);
+      socket.off('vote_cast', onVoteCast);
+      socket.off('round_stopped', onRoundStopped);
+      socket.off('new_round_ready', onNewRoundReady);
     };
-  }, [roomCode, name]);
+  }, [roomCode, name, socket]);
 
   function handleVote(value) {
     if (hasVoted || status !== 'active') return;
@@ -67,9 +68,9 @@ export default function ParticipantPage({ roomCode, name }) {
   }
 
   const statusLabel = {
-    waiting: '⏳ Ожидание раунда',
-    active: '🗳️ Голосование активно',
-    stopped: `✅ Раунд завершён`,
+    waiting: 'Ожидание раунда',
+    active: 'Голосование активно',
+    stopped: `Раунд завершён`,
   }[status];
 
   return (
