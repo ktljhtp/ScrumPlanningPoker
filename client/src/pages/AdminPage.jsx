@@ -88,6 +88,7 @@ export default function AdminPage({ roomCode }) {
 
   function startRound() {
     socket.emit('start_round', { roomCode, quorum: Number(quorumInput) });
+    console.log('startRound вызвана, roomCode:', roomCode, 'quorumInput:', quorumInput);
   }
 
   function stopRound() {

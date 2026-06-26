@@ -96,7 +96,7 @@ export default function ParticipantPage({ roomCode, name }) {
       )}
 
       <CardDeck
-        deck={DECK}
+        deck={deck}
         selected={selected}
         onSelect={handleVote}
         disabled={status !== 'active' || hasVoted}

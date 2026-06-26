@@ -1,6 +1,5 @@
 const roomService = require('../rooms/roomService');
 const sessionService = require('../session/sessionService');
-const participant = room.participants.get(sessionId);
 
 // Вспомогательная функция: распарсить cookie из строки
 function parseCookies(cookieHeader) {
@@ -55,7 +54,7 @@ module.exports = function (io) {
       });
 
       // Уведомляем остальных в комнате о новом участнике
-      io.to(roomCode).emit('vote_cast', {votedCount: result.votedCount,quorum: roomService.getRoom(roomCode)?.quorum,voterName: participant.name,});
+      socket.to(roomCode).emit('participant_joined', { name });
     });
 
     // Администратор начинает раунд
