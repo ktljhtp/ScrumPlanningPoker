@@ -28,7 +28,11 @@ export default function AdminPage({ roomCode }) {
     };
 
     const onParticipantJoined = ({ name }) => {
-      setParticipants(prev => [...prev, { name, hasVoted: false }]);
+      setParticipants(prev =>
+        prev.some(p => p.name === name)
+        ? prev
+        : [...prev, { name, hasVoted: false }]
+      );
     };
 
     const onParticipantLeft = ({ name }) => {
