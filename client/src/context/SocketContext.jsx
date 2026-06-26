@@ -9,7 +9,6 @@ export function SocketProvider({ children }) {
   useEffect(() => {
     // Подключаемся при монтировании провайдера
     socket.connect();
-    setIsConnected(true);
 
     const onConnect = () => setIsConnected(true);
     const onDisconnect = () => setIsConnected(false);

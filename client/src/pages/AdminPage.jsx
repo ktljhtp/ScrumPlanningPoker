@@ -2,8 +2,9 @@ import { useState, useEffect } from 'react';
 import ParticipantList from '../components/ParticipantList';
 import { useSocket } from '../context/SocketContext';
 
+
 export default function AdminPage({ roomCode }) {
-  const { socket } = useSocket();
+  const { socket, isConnected } = useSocket();
 
   const [status, setStatus] = useState('waiting');
   const [participants, setParticipants] = useState([]);
@@ -16,6 +17,7 @@ export default function AdminPage({ roomCode }) {
   const joinUrl = `${window.location.origin}/join/${roomCode}`;
 
   useEffect(() => {
+    if (!isConnected) return;
     socket.emit('join_room', { roomCode, name: 'Admin' });
 
     const onRoomJoined = (data) => {
@@ -84,7 +86,7 @@ export default function AdminPage({ roomCode }) {
       socket.off('round_stopped', onRoundStopped);
       socket.off('new_round_ready', onNewRoundReady);
     };
-  }, [roomCode, socket]);
+  }, [roomCode, socket, isConnected]);
 
   function startRound() {
     socket.emit('start_round', { roomCode, quorum: Number(quorumInput) });
