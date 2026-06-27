@@ -61,6 +61,7 @@ function startRound(code) {
   if (!room) return null;
   room.status = 'active';
   room.currentRound++;
+  room.quorum = room.participants.size;
   // Сбрасываем голоса всех участников
   for (const p of room.participants.values()) {
     p.hasVoted = false;

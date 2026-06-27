@@ -3,14 +3,24 @@ const router = express.Router();
 const roomService = require('./rooms/roomService');
 const sessionService = require('./session/sessionService');
 
-// Middleware: получить или создать сессию
+// Middleware: получить или создать сессию.
+// Если cookie есть но сессия не найдена (например, после рестарта сервера) —
+// восстанавливаем сессию с тем же sessionId, чтобы adminSessionId в комнате совпал.
 function requireSession(req, res, next) {
-  let sessionId = req.cookies.sessionId;
-  if (!sessionId || !sessionService.getSession(sessionId)) {
-    sessionId = sessionService.createSession();
+  const sessionId = req.cookies.sessionId;
+  if (sessionId && !sessionService.getSession(sessionId)) {
+    // Сессия была, но сервер перезапустился — восстанавливаем с тем же ID
+    sessionService.restoreSession(sessionId);
     sessionService.setSessionCookie(res, sessionId);
+    req.sessionId = sessionId;
+  } else if (!sessionId || !sessionService.getSession(sessionId)) {
+    // Совсем новый пользователь — создаём новую сессию
+    const newId = sessionService.createSession();
+    sessionService.setSessionCookie(res, newId);
+    req.sessionId = newId;
+  } else {
+    req.sessionId = sessionId;
   }
-  req.sessionId = sessionId;
   next();
 }
 
@@ -30,7 +40,6 @@ router.get('/room/:code', requireSession, (req, res) => {
   const participants = [...room.participants.entries()].map(([sid, p]) => ({
     name: p.name,
     hasVoted: p.hasVoted,
-    // vote раскрываем только после остановки
     vote: room.status === 'stopped' ? p.vote : undefined,
   }));
 
@@ -57,21 +66,18 @@ router.post('/room/:code/join', requireSession, (req, res) => {
   res.json({ ok: true });
 });
 
-// POST /api/room/:code/start — начать раунд (только администратор)
+// POST /api/room/:code/start
 router.post('/room/:code/start', requireSession, (req, res) => {
   const room = roomService.getRoom(req.params.code);
   if (!room) return res.status(404).json({ error: 'Room not found' });
   if (room.adminSessionId !== req.sessionId) return res.status(403).json({ error: 'Not admin' });
 
-  // Если передан новый кворум — обновляем
   if (req.body.quorum !== undefined) room.quorum = Number(req.body.quorum);
-
   roomService.startRound(req.params.code);
   res.json({ ok: true });
-  // Реальный сигнал участникам идёт через Socket.IO (см. socketHandler)
 });
 
-// POST /api/room/:code/stop — остановить раунд (только администратор)
+// POST /api/room/:code/stop
 router.post('/room/:code/stop', requireSession, (req, res) => {
   const room = roomService.getRoom(req.params.code);
   if (!room) return res.status(404).json({ error: 'Room not found' });
@@ -81,7 +87,7 @@ router.post('/room/:code/stop', requireSession, (req, res) => {
   res.json({ ok: true, ...result });
 });
 
-// POST /api/room/:code/vote — отдать голос
+// POST /api/room/:code/vote
 router.post('/room/:code/vote', requireSession, (req, res) => {
   const { value } = req.body;
   const result = roomService.castVote(req.params.code, req.sessionId, value);
@@ -89,7 +95,7 @@ router.post('/room/:code/vote', requireSession, (req, res) => {
   res.json({ ok: true, votedCount: result.votedCount });
 });
 
-// GET /api/session — текущая сессия (для восстановления состояния)
+// GET /api/session
 router.get('/session', requireSession, (req, res) => {
   const session = sessionService.getSession(req.sessionId);
   if (!session || !session.roomCode) return res.json({ active: false });

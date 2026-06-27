@@ -19,10 +19,7 @@ module.exports = function (io) {
     const sessionId = cookies.sessionId;
     const session = sessionId ? sessionService.getSession(sessionId) : null;
 
-    if (!session) {
-      // Сессия не найдена — просто подключаем без восстановления
-      console.log(`Socket connected (no session): ${socket.id}`);
-    }
+    console.log(`[connect] socket=${socket.id} sessionId=${sessionId} sessionFound=${!!session}`);
 
     // Клиент запрашивает вход в комнату через WebSocket
     socket.on('join_room', ({ roomCode, name }) => {
@@ -32,12 +29,13 @@ module.exports = function (io) {
         return;
       }
 
-      // Подключаем сокет к комнате Socket.IO
       socket.join(roomCode);
       socket.roomCode = roomCode;
       socket.sessionId = sessionId;
+      socket.isAdmin = room.adminSessionId === sessionId;
 
-      // Отправляем новому участнику текущее состояние комнаты
+      console.log(`[join_room] socket=${socket.id} room=${roomCode} sessionId=${sessionId} adminSessionId=${room.adminSessionId} isAdmin=${socket.isAdmin}`);
+
       const participants = [...room.participants.entries()].map(([sid, p]) => ({
         name: p.name,
         hasVoted: p.hasVoted,
@@ -49,23 +47,22 @@ module.exports = function (io) {
         quorum: room.quorum,
         deck: room.deck,
         participants,
-        isAdmin: room.adminSessionId === sessionId,
+        isAdmin: socket.isAdmin,
         hasVoted: room.participants.get(sessionId)?.hasVoted || false,
       });
 
-      // Уведомляем остальных в комнате о новом участнике
       socket.to(roomCode).emit('participant_joined', { name });
     });
 
     // Администратор начинает раунд
     socket.on('start_round', ({ roomCode, quorum }) => {
       const room = roomService.getRoom(roomCode);
-      if (!room || room.adminSessionId !== sessionId) return;
+      console.log(`[start_round] socket=${socket.id} room=${roomCode} socket.isAdmin=${socket.isAdmin} sessionId=${sessionId} adminSessionId=${room?.adminSessionId}`);
+      if (!room || !socket.isAdmin) return;
 
       if (quorum !== undefined) room.quorum = Number(quorum);
       roomService.startRound(roomCode);
 
-      // Оповещаем всю комнату
       io.to(roomCode).emit('round_started', {
         round: room.currentRound,
         quorum: room.quorum,
@@ -80,13 +77,11 @@ module.exports = function (io) {
         return;
       }
 
-      // Все видят счётчик, но не сами оценки
       io.to(roomCode).emit('vote_cast', {
         votedCount: result.votedCount,
         quorum: roomService.getRoom(roomCode)?.quorum,
       });
 
-      // Если достигли кворума — автоматически останавливаем раунд
       if (result.quorumReached) {
         const stopResult = roomService.stopRound(roomCode);
         io.to(roomCode).emit('round_stopped', {
@@ -101,7 +96,8 @@ module.exports = function (io) {
     // Администратор останавливает вручную
     socket.on('stop_round', ({ roomCode }) => {
       const room = roomService.getRoom(roomCode);
-      if (!room || room.adminSessionId !== sessionId) return;
+      console.log(`[stop_round] socket=${socket.id} socket.isAdmin=${socket.isAdmin}`);
+      if (!room || !socket.isAdmin) return;
 
       const stopResult = roomService.stopRound(roomCode);
       io.to(roomCode).emit('round_stopped', {
@@ -115,12 +111,14 @@ module.exports = function (io) {
     // Администратор сбрасывает для нового раунда (без старта)
     socket.on('new_round', ({ roomCode }) => {
       const room = roomService.getRoom(roomCode);
-      if (!room || room.adminSessionId !== sessionId) return;
+      console.log(`[new_round] socket=${socket.id} socket.isAdmin=${socket.isAdmin}`);
+      if (!room || !socket.isAdmin) return;
       room.status = 'waiting';
       io.to(roomCode).emit('new_round_ready');
     });
 
     socket.on('disconnect', () => {
+      console.log(`[disconnect] socket=${socket.id}`);
       if (socket.roomCode) {
         const room = roomService.getRoom(socket.roomCode);
         const participant = room?.participants.get(socket.sessionId);

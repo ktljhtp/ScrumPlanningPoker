@@ -4,26 +4,25 @@ import { useSocket } from '../context/SocketContext';
 
 
 export default function AdminPage({ roomCode }) {
-  const { socket, isConnected } = useSocket();
+  const { socket } = useSocket();
 
   const [status, setStatus] = useState('waiting');
   const [participants, setParticipants] = useState([]);
   const [votedCount, setVotedCount] = useState(0);
-  const [quorum, setQuorum] = useState(5);
-  const [quorumInput, setQuorumInput] = useState('5');
+  const [quorum, setQuorum] = useState(0);
   const [result, setResult] = useState(null);
   const [allVotes, setAllVotes] = useState(null);
 
   const joinUrl = `${window.location.origin}/join/${roomCode}`;
 
   useEffect(() => {
-    if (!isConnected) return;
-    socket.emit('join_room', { roomCode, name: 'Admin' });
+    const doJoin = () => {
+      socket.emit('join_room', { roomCode, name: 'Admin' });
+    };
 
     const onRoomJoined = (data) => {
       setStatus(data.status);
       setQuorum(data.quorum);
-      setQuorumInput(String(data.quorum));
       setParticipants(data.participants);
     };
 
@@ -42,8 +41,6 @@ export default function AdminPage({ roomCode }) {
     const onVoteCast = ({ votedCount: vc, quorum: q, voterName }) => {
       setVotedCount(vc);
       setQuorum(q);
-      // используем имя проголосовавшего (баг 8 — если сервер его шлёт)
-      // иначе просто обновляем счётчик, не трогая массив
       if (voterName) {
         setParticipants(prev =>
           prev.map(p => p.name === voterName ? { ...p, hasVoted: true } : p)
@@ -73,6 +70,7 @@ export default function AdminPage({ roomCode }) {
       setVotedCount(0);
     };
 
+    socket.on('connect', doJoin);
     socket.on('room_joined', onRoomJoined);
     socket.on('participant_joined', onParticipantJoined);
     socket.on('participant_left', onParticipantLeft);
@@ -81,7 +79,12 @@ export default function AdminPage({ roomCode }) {
     socket.on('round_stopped', onRoundStopped);
     socket.on('new_round_ready', onNewRoundReady);
 
+    if (socket.connected) {
+      doJoin();
+    }
+
     return () => {
+      socket.off('connect', doJoin);
       socket.off('room_joined', onRoomJoined);
       socket.off('participant_joined', onParticipantJoined);
       socket.off('participant_left', onParticipantLeft);
@@ -90,11 +93,10 @@ export default function AdminPage({ roomCode }) {
       socket.off('round_stopped', onRoundStopped);
       socket.off('new_round_ready', onNewRoundReady);
     };
-  }, [roomCode, socket, isConnected]);
+  }, [roomCode, socket]);
 
   function startRound() {
-    socket.emit('start_round', { roomCode, quorum: Number(quorumInput) });
-    console.log('startRound вызвана, roomCode:', roomCode, 'quorumInput:', quorumInput);
+    socket.emit('start_round', { roomCode });
   }
 
   function stopRound() {
@@ -118,27 +120,18 @@ export default function AdminPage({ roomCode }) {
         </button>
       </div>
 
-      <div style={styles.controls}>
-        <label>Кворум (голосов): </label>
-        <input
-          type="number"
-          min={1}
-          value={quorumInput}
-          onChange={e => setQuorumInput(e.target.value)}
-          style={styles.quorumInput}
-          disabled={status === 'active'}
-        />
-      </div>
-
       <p style={styles.counter}>
-        Проголосовало: <strong>{votedCount}</strong> / Кворум: <strong>{quorum}</strong>
+        Участников: <strong>{participants.length}</strong>
+        {status === 'active' && (
+          <> &nbsp;|&nbsp; Проголосовало: <strong>{votedCount}</strong> / <strong>{quorum}</strong></>
+        )}
       </p>
 
       <div style={styles.btnRow}>
         <button
           style={{ ...styles.btn, background: '#22c55e' }}
           onClick={startRound}
-          disabled={status === 'active'}
+          disabled={status === 'active' || participants.length === 0}
         >
           Старт раунда
         </button>
@@ -187,8 +180,6 @@ const styles = {
   code: { fontSize: '48px', fontWeight: 'bold', letterSpacing: '8px', margin: '4px 0' },
   link: { fontSize: '12px', color: '#94a3b8', margin: '4px 0' },
   copyBtn: { padding: '8px 16px', borderRadius: '8px', border: '1px solid #ccc', cursor: 'pointer', background: '#fff' },
-  controls: { display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '12px' },
-  quorumInput: { width: '80px', padding: '8px', fontSize: '18px', borderRadius: '8px', border: '1px solid #ccc' },
   counter: { fontSize: '18px', marginBottom: '16px', color: '#475569' },
   btnRow: { display: 'flex', gap: '12px', marginBottom: '20px', flexWrap: 'wrap' },
   btn: { flex: 1, padding: '14px', fontSize: '16px', color: '#fff', border: 'none', borderRadius: '8px', cursor: 'pointer', minWidth: '120px' },

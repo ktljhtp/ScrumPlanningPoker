@@ -9,6 +9,12 @@ function createSession() {
   return sessionId;
 }
 
+// Восстанавливает сессию с существующим sessionId (например, после рестарта сервера)
+function restoreSession(sessionId) {
+  sessions.set(sessionId, { roomCode: null, name: null, hasVoted: false });
+  return sessionId;
+}
+
 function getSession(sessionId) {
   return sessions.get(sessionId) || null;
 }
@@ -20,13 +26,12 @@ function updateSession(sessionId, data) {
   return session;
 }
 
-// Устанавливает cookie с sessionId в ответ
 function setSessionCookie(res, sessionId) {
   res.cookie('sessionId', sessionId, {
     httpOnly: true,
     sameSite: 'lax',
-    maxAge: SESSION_MAX_AGE * 1000, // maxAge в миллисекундах
+    maxAge: SESSION_MAX_AGE * 1000,
   });
 }
 
-module.exports = { createSession, getSession, updateSession, setSessionCookie, SESSION_MAX_AGE };
+module.exports = { createSession, restoreSession, getSession, updateSession, setSessionCookie, SESSION_MAX_AGE };
