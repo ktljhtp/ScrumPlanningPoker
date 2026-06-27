@@ -117,20 +117,9 @@ const s = {
   page: { maxWidth: 460, margin: '0 auto', fontFamily: "'Courier New', monospace", backgroundColor: '#fff'},
   logo: { fontSize: 10, lineHeight: 1.2, color: '#000', margin: '0 0 24px', fontFamily: "'Courier New', monospace" },
   group: { marginBottom: 12 },
-  label: { display: 'block', fontSize: 13, marginBottom: 4, color: '#555' },
+  label: { display: 'block', fontSize: 13, marginBottom: 4, color: '#000000' },
   btn: { fontFamily: "'Courier New', monospace", fontSize: 14, background: '#fff', color: '#000', border: '1px solid #000', borderRadius: 0, padding: '10px 16px', cursor: 'pointer', textAlign: 'left' },
   sep: { fontSize: 11, color: '#aaa', margin: '16px 0', lineHeight: 1.4, fontFamily: "'Courier New', monospace" },
   error: { border: '1px solid #000', padding: '8px 12px', marginBottom: 16, fontSize: 13, background: '#f5f5f5' },
-  input: {
-    width: '100%',
-    padding: '8px 12px',
-    fontSize: 14,
-    fontFamily: "'Courier New', monospace",
-    backgroundColor: '#ffffff',
-    color: '#000000',
-    border: '1px solid #000000',
-    borderRadius: 0,
-    outline: 'none',
-    boxSizing: 'border-box',
-  },
+
 };
