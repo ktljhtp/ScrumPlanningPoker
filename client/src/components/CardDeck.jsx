@@ -1,48 +1,75 @@
 export default function CardDeck({ deck, selected, onSelect, disabled }) {
   return (
-    <div style={styles.grid}>
-      {deck.map((value) => (
-        <button
-          key={value}
-          onClick={() => !disabled && onSelect(value)}
-          disabled={disabled}
-          style={{
-            ...styles.card,
-            ...(selected === value ? styles.selected : {}),
-            ...(disabled ? styles.disabled : {}),
-          }}
-        >
-          {value}
-        </button>
-      ))}
+    <div style={s.grid}>
+      {deck.map((value) => {
+        const isSelected = selected === value;
+        return (
+          <button
+            key={value}
+            onClick={() => !disabled && onSelect(value)}
+            disabled={disabled}
+            style={{
+              ...s.card,
+              ...(isSelected ? s.selected : {}),
+              ...(disabled && !isSelected ? s.disabled : {}),
+            }}
+          >
+            {/* Верхний угол */}
+            <span style={s.corner}>{isSelected ? '╔═══╗' : '┌───┐'}</span>
+            {/* Значение */}
+            <span style={s.value}>{value}</span>
+            {/* Нижний угол */}
+            <span style={s.corner}>{isSelected ? '╚═══╝' : '└───┘'}</span>
+          </button>
+        );
+      })}
     </div>
   );
 }
 
-const styles = {
+const s = {
   grid: {
     display: 'grid',
     gridTemplateColumns: 'repeat(4, 1fr)',
-    gap: '12px',
-    padding: '16px',
+    gap: 10,
+    padding: '8px 0',
   },
   card: {
-    minHeight: '72px',
-    fontSize: '24px',
-    fontWeight: 'bold',
-    borderRadius: '12px',
-    border: '2px solid #ccc',
+    fontFamily: "'Courier New', Courier, monospace",
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 2,
+    minHeight: 72,
+    fontSize: 14,
+    border: '1px solid #000',
+    borderRadius: 0,
     background: '#fff',
+    color: '#000',
     cursor: 'pointer',
-    transition: 'transform 0.1s, border-color 0.1s',
+    padding: '6px 0',
+    transition: 'background 0.1s, color 0.1s',
   },
   selected: {
-    border: '2px solid #4f6ef7',
-    background: '#eef0ff',
-    transform: 'translateY(-4px)',
+    background: '#000',
+    color: '#fff',
+    border: '1px solid #000',
   },
   disabled: {
-    opacity: 0.5,
+    opacity: 0.4,
     cursor: 'not-allowed',
+  },
+  corner: {
+    fontSize: 11,
+    lineHeight: 1,
+    letterSpacing: 0,
+    display: 'block',
+  },
+  value: {
+    fontSize: 22,
+    fontWeight: 'bold',
+    lineHeight: 1,
+    display: 'block',
   },
 };

@@ -1,31 +1,48 @@
 export default function ParticipantList({ participants, showVotes }) {
+  if (participants.length === 0) {
+    return (
+      <div style={s.empty}>
+        <pre style={s.pre}>{`┌─────────────────────────────┐
+│ участников пока нет         │
+└─────────────────────────────┘`}</pre>
+      </div>
+    );
+  }
+
   return (
-    <div>
-      <h3>Участники ({participants.length})</h3>
-      <ul style={{ listStyle: 'none', padding: 0 }}>
-        {participants.map((p, i) => (
-          <li key={i} style={styles.item}>
-            <span>{p.name}</span>
-            <span style={p.hasVoted ? styles.voted : styles.pending}>
-              {showVotes && p.vote !== undefined
-                ? p.vote
-                : p.hasVoted ? '✓' : '…'}
-            </span>
-          </li>
-        ))}
-      </ul>
+    <div style={s.wrap}>
+      <p style={s.heading}>{'участники (' + participants.length + '):'}</p>
+      <pre style={s.line}>{'─'.repeat(36)}</pre>
+      {participants.map((p, i) => (
+        <div key={i} style={s.row}>
+          <span style={s.name}>{p.name}</span>
+          <span style={p.hasVoted ? s.voted : s.pending}>
+            {showVotes && p.vote !== undefined
+              ? `[${p.vote}]`
+              : p.hasVoted ? '[+]' : '[ ]'}
+          </span>
+        </div>
+      ))}
+      <pre style={s.line}>{'─'.repeat(36)}</pre>
     </div>
   );
 }
 
-const styles = {
-  item: {
+const s = {
+  wrap: { marginTop: 8, fontFamily: "'Courier New', Courier, monospace" },
+  empty: { marginTop: 8 },
+  pre: { fontSize: 12, lineHeight: 1.3, color: '#000', margin: 0 },
+  heading: { fontSize: 13, color: '#555', margin: '0 0 4px' },
+  line: { color: '#aaa', margin: '2px 0', fontSize: 12 },
+  row: {
     display: 'flex',
     justifyContent: 'space-between',
-    padding: '8px 12px',
-    borderBottom: '1px solid #eee',
-    fontSize: '16px',
+    padding: '5px 0',
+    borderBottom: '1px dashed #ddd',
+    fontSize: 14,
+    fontFamily: "'Courier New', Courier, monospace",
   },
-  voted: { color: '#22c55e', fontWeight: 'bold' },
-  pending: { color: '#94a3b8' },
+  name: { color: '#000' },
+  voted: { color: '#000', fontWeight: 'bold' },
+  pending: { color: '#aaa' },
 };

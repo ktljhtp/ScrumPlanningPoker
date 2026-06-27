@@ -20,7 +20,7 @@ export default function ParticipantPage({ roomCode, name }) {
       setStatus(data.status);
       setQuorum(data.quorum);
       setHasVoted(data.hasVoted);
-      setDeck(data.deck); // баг 9: берём деку с сервера
+      setDeck(data.deck);
     };
     const onRoundStarted = ({ quorum: q }) => {
       setStatus('active');
@@ -67,34 +67,45 @@ export default function ParticipantPage({ roomCode, name }) {
     setHasVoted(true);
   }
 
-  const statusLabel = {
-    waiting: 'Ожидание раунда',
-    active: 'Голосование активно',
-    stopped: `Раунд завершён`,
-  }[status];
+  const statusMap = {
+    waiting: 'ожидание раунда',
+    active:  'голосование активно',
+    stopped: 'раунд завершён',
+  };
 
   return (
-    <div style={styles.container}>
-      <h2 style={styles.room}>Комната: {roomCode}</h2>
-      <p style={styles.statusBadge}>{statusLabel}</p>
+    <div style={s.page}>
 
-      {status === 'active' && (
-        <p style={styles.counter}>Проголосовало: {votedCount} / Кворум: {quorum}</p>
-      )}
+      {/* Шапка */}
+      <pre style={s.header}>{`┌──────────────────────────────────┐
+│ SCRUM POKER  комната: ${roomCode.padEnd(10)} │
+│ участник:    ${name.slice(0, 20).padEnd(20)}       │
+└──────────────────────────────────┘`}</pre>
 
+      {/* Статус */}
+      <p style={s.statusLine}>
+        {'> '}<strong>{statusMap[status] || status}</strong>
+        {status === 'active' && <span style={s.dim}>{`  проголосовало: ${votedCount} / кворум: ${quorum}`}</span>}
+      </p>
+
+      {/* Итог раунда */}
       {status === 'stopped' && result !== null && (
-        <div style={styles.resultBox}>
-          <p style={styles.resultLabel}>Итог</p>
-          <p style={styles.resultValue}>{result}</p>
+        <div style={s.resultBox}>
+          <pre style={s.corner}>{'┌' + '─'.repeat(30) + '┐'}</pre>
+          <div style={s.resultInner}>
+            <span style={s.dim}>итог</span>
+            <span style={s.resultValue}>{result}</span>
+          </div>
+          <pre style={s.corner}>{'└' + '─'.repeat(30) + '┘'}</pre>
         </div>
       )}
 
+      {/* Подтверждение голоса */}
       {hasVoted && status === 'active' && (
-        <p style={{ textAlign: 'center', color: '#22c55e', fontSize: '18px' }}>
-          ✓ Ты проголосовал: <strong>{selected}</strong>
-        </p>
+        <p style={s.voted}>{'> голос принят: ['}<strong>{selected}</strong>{']'}</p>
       )}
 
+      {/* Карточки */}
       <CardDeck
         deck={deck}
         selected={selected}
@@ -105,12 +116,18 @@ export default function ParticipantPage({ roomCode, name }) {
   );
 }
 
-const styles = {
-  container: { maxWidth: 480, margin: '0 auto', padding: '20px', fontFamily: 'sans-serif' },
-  room: { textAlign: 'center', fontSize: '22px', color: '#475569' },
-  statusBadge: { textAlign: 'center', fontSize: '20px', fontWeight: 'bold', margin: '12px 0' },
-  counter: { textAlign: 'center', color: '#64748b', fontSize: '16px' },
-  resultBox: { textAlign: 'center', margin: '16px 0', padding: '16px', background: '#f0fdf4', borderRadius: '12px' },
-  resultLabel: { fontSize: '14px', color: '#16a34a', margin: 0 },
-  resultValue: { fontSize: '64px', fontWeight: 'bold', color: '#15803d', margin: 0 },
+const s = {
+  page: { maxWidth: 480, margin: '0 auto', fontFamily: "'Courier New', Courier, monospace", fontSize: 14, backgroundColor: '#fff'},
+  header: { fontSize: 12, lineHeight: 1.4, margin: '0 0 16px', color: '#000' },
+  statusLine: { margin: '0 0 16px', fontSize: 14, color: '#000' },
+  dim: { color: '#777', fontSize: 13 },
+  voted: { margin: '0 0 16px', color: '#000', fontSize: 14 },
+  resultBox: { marginBottom: 20 },
+  corner: { margin: 0, lineHeight: 1, color: '#000' },
+  resultInner: {
+    borderLeft: '1px solid #000', borderRight: '1px solid #000',
+    padding: '8px 16px', display: 'flex', alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  resultValue: { fontSize: 52, lineHeight: 1, fontWeight: 'bold' },
 };
