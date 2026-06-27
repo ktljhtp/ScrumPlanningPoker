@@ -105,7 +105,7 @@ ${line()}`}</pre>
 ${line()}`}</pre>
 
       <button style={{ ...s.btn, width: '100%', marginBottom: 16, textAlign: 'center' }}
-        onClick={handleJoin}
+        onClick={handleCreateRoom}
         disabled={loading}>
         [ Создать комнату (я — администратор) ]
       </button>

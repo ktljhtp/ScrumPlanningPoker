@@ -77,10 +77,20 @@ export default function ParticipantPage({ roomCode, name }) {
     <div style={s.page}>
 
       {/* Шапка */}
-      <pre style={s.header}>{`┌──────────────────────────────────┐
-│ SCRUM POKER  комната: ${roomCode.padEnd(10)} │
-│ участник:    ${name.slice(0, 20).padEnd(20)}       │
-└──────────────────────────────────┘`}</pre>
+      <pre style={s.header}>
+  {(() => {
+    const safeRoomCode = String(roomCode || '').slice(0, 10);
+    const safeName = String(name || '').slice(0, 20);
+    const W = 34;
+    const header = `
+┌${'─'.repeat(W)}┐
+ SCRUM POKER  комната: ${safeRoomCode.padEnd(W - 22)} 
+ участник:    ${safeName.padEnd(W - 14)} 
+└${'─'.repeat(W)}┘
+`;
+    return header;
+  })()}
+</pre>
 
       {/* Статус */}
       <p style={s.statusLine}>
