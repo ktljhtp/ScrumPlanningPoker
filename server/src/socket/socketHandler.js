@@ -45,6 +45,7 @@ module.exports = function (io) {
         participants,
         isAdmin: socket.isAdmin,
         hasVoted: room.participants.get(sessionId)?.hasVoted || false,
+        topic: room.topic || '',
       });
 
       socket.to(roomCode).emit('participant_joined', { name });
@@ -99,6 +100,14 @@ module.exports = function (io) {
       });
     });
 
+    socket.on('set_topic', ({ roomCode, topic }) => {
+      const room = roomService.getRoom(roomCode);
+      if (!room || !socket.isAdmin) return;
+
+      room.topic = topic.slice(0, 200); // лимит на сервере
+      io.to(roomCode).emit('topic_updated', { topic: room.topic });
+    });
+
     socket.on('cast_vote', ({ roomCode, value }) => {
       const result = roomService.castVote(roomCode, sessionId, value);
       if (!result.ok) {
@@ -109,6 +118,7 @@ module.exports = function (io) {
       io.to(roomCode).emit('vote_cast', {
         votedCount: result.votedCount,
         quorum: roomService.getRoom(roomCode)?.quorum,
+        voterName: socket.participantName,
       });
 
       if (result.quorumReached) {

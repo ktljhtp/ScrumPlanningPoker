@@ -20,10 +20,11 @@ function createRoom(adminSessionId, options = {}) {
     participants: new Map(),
     status: 'waiting',
     quorum: options.quorum || 999,
-    deck: options.deck || [0, 1, 2, 3, 5, 8, 13, 20, 40, 100, '?', '∞'],
+    deck: options.deck || [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12],
     resultMode: options.resultMode || 'median',
     currentRound: 0,
     createdAt: Date.now(),
+    topic: '',
   };
   rooms.set(code, room);
   return room;

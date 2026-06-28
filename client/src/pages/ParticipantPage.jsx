@@ -4,7 +4,7 @@ import { useSocket } from '../context/SocketContext';
 
 export default function ParticipantPage({ roomCode, name, onLeft }) {
   const { socket } = useSocket();
-
+  const [topic, setTopic] = useState('');
   const [status, setStatus] = useState('waiting');
   const [selected, setSelected] = useState(null);
   const [hasVoted, setHasVoted] = useState(false);
@@ -17,11 +17,13 @@ export default function ParticipantPage({ roomCode, name, onLeft }) {
   useEffect(() => {
     socket.emit('join_room', { roomCode, name });
 
+    
     const onRoomJoined = (data) => {
       setStatus(data.status);
       setQuorum(data.quorum);
       setHasVoted(data.hasVoted);
       setDeck(data.deck);
+      setTopic(data.topic || '');
     };
     const onRoundStarted = ({ quorum: q }) => {
       setStatus('active');
@@ -55,6 +57,8 @@ export default function ParticipantPage({ roomCode, name, onLeft }) {
       onLeft({ closed: true });
     };
 
+    const handleTopicUpdated = ({ topic: t }) => setTopic(t);
+
     socket.on('room_joined', onRoomJoined);
     socket.on('round_started', onRoundStarted);
     socket.on('vote_cast', onVoteCast);
@@ -63,6 +67,7 @@ export default function ParticipantPage({ roomCode, name, onLeft }) {
     socket.on('new_round_ready', onNewRoundReady);
     socket.on('left_room', onLeftRoom);
     socket.on('room_closed', onRoomClosed);
+    socket.on('topic_updated', handleTopicUpdated);
 
     return () => {
       socket.off('room_joined', onRoomJoined);
@@ -73,6 +78,7 @@ export default function ParticipantPage({ roomCode, name, onLeft }) {
       socket.off('new_round_ready', onNewRoundReady);
       socket.off('left_room', onLeftRoom);
       socket.off('room_closed', onRoomClosed);
+      socket.off('topic_updated', handleTopicUpdated);
     };
   }, [roomCode, name, socket]);
 
@@ -115,7 +121,12 @@ export default function ParticipantPage({ roomCode, name, onLeft }) {
     return header;
   })()}
 </pre>
-
+      {topic && (
+  <div>
+    <p style={{ ...s.dim, margin: '0 0 -10px' }}>тема:</p>
+    <p style={{ margin: 0, fontWeight: 'bold' }}>{topic}</p>
+  </div>
+)}
       {/* Статус */}
       <p style={s.statusLine}>
         {'> '}<strong>{statusMap[status] || status}</strong>
@@ -168,7 +179,6 @@ export default function ParticipantPage({ roomCode, name, onLeft }) {
           </button>
         )}
       </div>
-
     </div>
   );
 }
@@ -182,11 +192,10 @@ const s = {
   resultBox: { marginBottom: 20 },
   corner: { margin: 0, lineHeight: 1, color: '#000' },
   resultInner: {
-    borderLeft: '1px solid #000', borderRight: '1px solid #000',
     padding: '8px 16px', display: 'flex', alignItems: 'center',
     justifyContent: 'space-between',
   },
-  resultValue: { fontSize: 52, lineHeight: 1, fontWeight: 'bold' },
+  resultValue: { fontSize: 52, lineHeight: 1},
   leaveSection: { marginTop: 8, paddingBottom: 32 },
   divider: { margin: '0 0 16px', color: '#ccc', lineHeight: 1 },
   confirmBox: { background: '#f9f9f9', border: '1px solid #ccc', padding: '12px 16px' },
