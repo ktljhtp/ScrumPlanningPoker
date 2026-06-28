@@ -13,7 +13,7 @@ export default function AdminPage({ roomCode }) {
   const [allVotes, setAllVotes] = useState(null);
   const [copied, setCopied] = useState(false);
 
-  const joinUrl = `${window.location.origin}/join/${roomCode}`;
+  const joinUrl = `${roomCode}`;
 
   useEffect(() => {
     const doJoin = () => socket.emit('join_room', { roomCode, name: 'Admin' });
@@ -137,12 +137,9 @@ export default function AdminPage({ roomCode }) {
           <span style={s.dim}>Код комнаты:  </span>
           <span style={{ fontSize: 24, letterSpacing: 8, fontFamily: 'inherit' }}>{roomCode}</span>
         </div>
-        <div style={{ ...s.boxBody, fontSize: 11, color: '#888' }}>
-          {joinUrl}
-        </div>
         <div style={s.boxBody}>
           <button style={s.btn} onClick={copyLink}>
-            [{copied ? ' скопировано! ' : ' скопировать ссылку '}]
+            [{copied ? ' скопировано! ' : ' скопировать код '}]
           </button>
         </div>
         <pre style={s.boxBot}>{'└' + '─'.repeat(38) + '┘'}</pre>
@@ -151,8 +148,8 @@ export default function AdminPage({ roomCode }) {
       {/* Статус */}
       <p style={s.statusLine}>
         {'> статус: '}<strong>{statusLabel}</strong>
-        {'  участники: '}<strong>{participants.length}</strong>
-        {status === 'active' && <>{'  голоса: '}<strong>{votedCount}/{quorum}</strong></>}
+        {' || участники: '}<strong>{participants.length}</strong>
+        {status === 'active' && <>{' || голоса: '}<strong>{votedCount}/{quorum}</strong></>}
       </p>
 
       {/* Кнопки управления */}
@@ -201,10 +198,8 @@ export default function AdminPage({ roomCode }) {
   );
 }
 
-const logo = `
-
-
-    ███████╗ ██████╗██████╗ ██╗   ██╗███╗   ███║
+const logo = `                      
+  ███████╗ ██████╗██████╗ ██╗   ██╗███╗   ███║
  ██╔════╝██╔════╝██╔══██╗██║   ██║████╗ ████║
  ███████╗██║     ██████╔╝██║   ██║██╔████╔██║
  ╚════██║██║     ██╔══██╗██║   ██║██║╚██╔╝██║
@@ -216,7 +211,7 @@ const logo = `
  ██╔═══╝ ██║   ██║██╔═██╗ ██╔══╝  ██╔══██╗
  ██║     ╚██████╔╝██║  ██╗███████╗██║  ██║
  ╚═╝      ╚═════╝ ╚═╝  ╚═╝╚══════╝╚═╝  ╚═╝
-                                           ADMIN`.trim();
+                                           ADMIN`;
 
 const s = {
   page: { maxWidth: 560, margin: '0 auto', fontFamily: "'Courier New', Courier, monospace", fontSize: 14, backgroundColor: '#fff'},

@@ -1,13 +1,14 @@
-import { createContext, useContext, useEffect, useRef, useState } from 'react';
+import { createContext, useContext, useEffect, useState } from 'react';
 import socket from '../api/socket';
 
 const SocketContext = createContext(null);
 
-export function SocketProvider({ children }) {
+export function SocketProvider({ children, sessionReady }) {
   const [isConnected, setIsConnected] = useState(socket.connected);
 
   useEffect(() => {
-    // Подключаемся при монтировании провайдера
+    if (!sessionReady) return; // ждём, пока HTTP-сессия не готова
+
     socket.connect();
 
     const onConnect = () => setIsConnected(true);
@@ -19,10 +20,8 @@ export function SocketProvider({ children }) {
     return () => {
       socket.off('connect', onConnect);
       socket.off('disconnect', onDisconnect);
-      // Не отключаем сокет при размонтировании провайдера, чтобы он жил всё время
-      // но если нужно, можно закомментировать: socket.disconnect();
     };
-  }, []);
+  }, [sessionReady]); // перезапускаем только когда сессия готова
 
   return (
     <SocketContext.Provider value={{ socket, isConnected }}>

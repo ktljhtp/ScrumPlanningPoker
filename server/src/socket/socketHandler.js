@@ -19,7 +19,6 @@ module.exports = function (io) {
     const sessionId = cookies.sessionId;
     const session = sessionId ? sessionService.getSession(sessionId) : null;
 
-    console.log(`[connect] socket=${socket.id} sessionId=${sessionId} sessionFound=${!!session}`);
 
     // Клиент запрашивает вход в комнату через WebSocket
     socket.on('join_room', ({ roomCode, name }) => {

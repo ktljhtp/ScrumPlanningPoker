@@ -8,24 +8,26 @@ import ParticipantPage from './pages/ParticipantPage';
 export default function App() {
   const [state, setState] = useState(null); // null = loading
   const [view, setView] = useState('join'); // join | admin | participant
+  const [sessionReady, setSessionReady] = useState(false);
 
   // При загрузке пробуем восстановить сессию
   useEffect(() => {
     api.get('/session')
       .then(res => {
+        setSessionReady(true); 
         if (res.data.active) {
           setState(res.data);
           setView(res.data.isAdmin ? 'admin' : 'participant');
         } else {
-          // Проверяем путь: /join/CODE
           const match = window.location.pathname.match(/^\/join\/([A-Z0-9]{6})$/);
-          if (match) {
-            setState({ roomCode: match[1] });
-          }
+          if (match) setState({ roomCode: match[1] });
           setView('join');
         }
       })
-      .catch(() => setView('join'));
+      .catch(() => {
+        setSessionReady(true); // всё равно разрешаем подключение
+        setView('join');
+      });
   }, []);
 
   function handleJoined(data) {
@@ -37,7 +39,17 @@ export default function App() {
     return <p style={{ textAlign: 'center', marginTop: '40px' }}>Загрузка...</p>;
   }
 
-  if (view === 'admin') return <AdminPage roomCode={state.roomCode} />;
-  if (view === 'participant') return <ParticipantPage roomCode={state.roomCode} name={state.name} />;
-  return <JoinPage onJoined={handleJoined} initialCode={state?.roomCode} />;
+  return (
+  <SocketProvider sessionReady={sessionReady}>
+    {state === null && view !== 'join' ? (
+      <p style={{ textAlign: 'center', marginTop: '40px' }}>Загрузка...</p>
+    ) : view === 'admin' ? (
+      <AdminPage roomCode={state.roomCode} />
+    ) : view === 'participant' ? (
+      <ParticipantPage roomCode={state.roomCode} name={state.name} />
+    ) : (
+      <JoinPage onJoined={handleJoined} initialCode={state?.roomCode} />
+    )}
+  </SocketProvider>
+);
 }
