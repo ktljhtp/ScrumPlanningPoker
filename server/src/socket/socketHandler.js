@@ -1,7 +1,6 @@
 const roomService = require('../rooms/roomService');
 const sessionService = require('../session/sessionService');
 
-// Вспомогательная функция: распарсить cookie из строки
 function parseCookies(cookieHeader) {
   const cookies = {};
   if (!cookieHeader) return cookies;
@@ -14,13 +13,10 @@ function parseCookies(cookieHeader) {
 
 module.exports = function (io) {
   io.on('connection', (socket) => {
-    // Получаем sessionId из cookie
     const cookies = parseCookies(socket.handshake.headers.cookie);
     const sessionId = cookies.sessionId;
     const session = sessionId ? sessionService.getSession(sessionId) : null;
 
-
-    // Клиент запрашивает вход в комнату через WebSocket
     socket.on('join_room', ({ roomCode, name }) => {
       const room = roomService.getRoom(roomCode);
       if (!room) {
@@ -31,9 +27,10 @@ module.exports = function (io) {
       socket.join(roomCode);
       socket.roomCode = roomCode;
       socket.sessionId = sessionId;
+      socket.participantName = name;
       socket.isAdmin = room.adminSessionId === sessionId;
 
-      console.log(`[join_room] socket=${socket.id} room=${roomCode} sessionId=${sessionId} adminSessionId=${room.adminSessionId} isAdmin=${socket.isAdmin}`);
+      console.log(`[join_room] socket=${socket.id} room=${roomCode} sessionId=${sessionId} isAdmin=${socket.isAdmin}`);
 
       const participants = [...room.participants.entries()].map(([sid, p]) => ({
         name: p.name,
@@ -53,10 +50,44 @@ module.exports = function (io) {
       socket.to(roomCode).emit('participant_joined', { name });
     });
 
-    // Администратор начинает раунд
+    // Участник покидает комнату
+    socket.on('leave_room', ({ roomCode }) => {
+      const name = roomService.removeParticipant(roomCode, sessionId);
+      if (!name) return;
+
+      sessionService.updateSession(sessionId, { roomCode: null, name: null, hasVoted: false });
+
+      const room = roomService.getRoom(roomCode);
+      // Уведомляем остальных об уходе и пересчитанном кворуме
+      io.to(roomCode).emit('participant_left', { name });
+      if (room && room.status === 'active') {
+        io.to(roomCode).emit('quorum_updated', { quorum: room.quorum });
+      }
+
+      socket.leave(roomCode);
+      socket.roomCode = null;
+      socket.emit('left_room');
+
+      console.log(`[leave_room] ${name} покинул ${roomCode}, новый кворум=${room?.quorum}`);
+    });
+
+    // Администратор закрывает комнату
+    socket.on('close_room', ({ roomCode }) => {
+      const room = roomService.getRoom(roomCode);
+      if (!room || !socket.isAdmin) return;
+
+      console.log(`[close_room] admin закрывает комнату ${roomCode}`);
+
+      // Сначала рассылаем событие всем в комнате
+      io.to(roomCode).emit('room_closed');
+
+      // Затем удаляем комнату
+      roomService.closeRoom(roomCode);
+      sessionService.updateSession(sessionId, { roomCode: null, name: null });
+    });
+
     socket.on('start_round', ({ roomCode, quorum }) => {
       const room = roomService.getRoom(roomCode);
-      console.log(`[start_round] socket=${socket.id} room=${roomCode} socket.isAdmin=${socket.isAdmin} sessionId=${sessionId} adminSessionId=${room?.adminSessionId}`);
       if (!room || !socket.isAdmin) return;
 
       if (quorum !== undefined) room.quorum = Number(quorum);
@@ -68,7 +99,6 @@ module.exports = function (io) {
       });
     });
 
-    // Участник голосует
     socket.on('cast_vote', ({ roomCode, value }) => {
       const result = roomService.castVote(roomCode, sessionId, value);
       if (!result.ok) {
@@ -92,10 +122,8 @@ module.exports = function (io) {
       }
     });
 
-    // Администратор останавливает вручную
     socket.on('stop_round', ({ roomCode }) => {
       const room = roomService.getRoom(roomCode);
-      console.log(`[stop_round] socket=${socket.id} socket.isAdmin=${socket.isAdmin}`);
       if (!room || !socket.isAdmin) return;
 
       const stopResult = roomService.stopRound(roomCode);
@@ -107,10 +135,8 @@ module.exports = function (io) {
       });
     });
 
-    // Администратор сбрасывает для нового раунда (без старта)
     socket.on('new_round', ({ roomCode }) => {
       const room = roomService.getRoom(roomCode);
-      console.log(`[new_round] socket=${socket.id} socket.isAdmin=${socket.isAdmin}`);
       if (!room || !socket.isAdmin) return;
       room.status = 'waiting';
       io.to(roomCode).emit('new_round_ready');

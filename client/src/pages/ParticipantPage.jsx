@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import CardDeck from '../components/CardDeck';
 import { useSocket } from '../context/SocketContext';
 
-export default function ParticipantPage({ roomCode, name }) {
+export default function ParticipantPage({ roomCode, name, onLeft }) {
   const { socket } = useSocket();
 
   const [status, setStatus] = useState('waiting');
@@ -12,6 +12,7 @@ export default function ParticipantPage({ roomCode, name }) {
   const [quorum, setQuorum] = useState('?');
   const [result, setResult] = useState(null);
   const [deck, setDeck] = useState([]);
+  const [confirmLeave, setConfirmLeave] = useState(false);
 
   useEffect(() => {
     socket.emit('join_room', { roomCode, name });
@@ -34,6 +35,9 @@ export default function ParticipantPage({ roomCode, name }) {
       setVotedCount(vc);
       setQuorum(q);
     };
+    const onQuorumUpdated = ({ quorum: q }) => {
+      setQuorum(q);
+    };
     const onRoundStopped = ({ result: r }) => {
       setStatus('stopped');
       setResult(r);
@@ -44,19 +48,31 @@ export default function ParticipantPage({ roomCode, name }) {
       setHasVoted(false);
       setResult(null);
     };
+    const onLeftRoom = () => {
+      onLeft();
+    };
+    const onRoomClosed = () => {
+      onLeft({ closed: true });
+    };
 
     socket.on('room_joined', onRoomJoined);
     socket.on('round_started', onRoundStarted);
     socket.on('vote_cast', onVoteCast);
+    socket.on('quorum_updated', onQuorumUpdated);
     socket.on('round_stopped', onRoundStopped);
     socket.on('new_round_ready', onNewRoundReady);
+    socket.on('left_room', onLeftRoom);
+    socket.on('room_closed', onRoomClosed);
 
     return () => {
       socket.off('room_joined', onRoomJoined);
       socket.off('round_started', onRoundStarted);
       socket.off('vote_cast', onVoteCast);
+      socket.off('quorum_updated', onQuorumUpdated);
       socket.off('round_stopped', onRoundStopped);
       socket.off('new_round_ready', onNewRoundReady);
+      socket.off('left_room', onLeftRoom);
+      socket.off('room_closed', onRoomClosed);
     };
   }, [roomCode, name, socket]);
 
@@ -65,6 +81,14 @@ export default function ParticipantPage({ roomCode, name }) {
     socket.emit('cast_vote', { roomCode, value });
     setSelected(value);
     setHasVoted(true);
+  }
+
+  function handleLeave() {
+    if (!confirmLeave) {
+      setConfirmLeave(true);
+      return;
+    }
+    socket.emit('leave_room', { roomCode });
   }
 
   const statusMap = {
@@ -122,12 +146,35 @@ export default function ParticipantPage({ roomCode, name }) {
         onSelect={handleVote}
         disabled={status !== 'active' || hasVoted}
       />
+
+      {/* Кнопка выхода */}
+      <div style={s.leaveSection}>
+        <pre style={s.divider}>{'─'.repeat(36)}</pre>
+        {confirmLeave ? (
+          <div style={s.confirmBox}>
+            <p style={s.confirmText}>{'! вы покинете комнату и не сможете вернуться'}</p>
+            <div style={s.btnRow}>
+              <button style={{ ...s.btn, ...s.btnDanger }} onClick={handleLeave}>
+                [ да, выйти ]
+              </button>
+              <button style={s.btn} onClick={() => setConfirmLeave(false)}>
+                [ отмена ]
+              </button>
+            </div>
+          </div>
+        ) : (
+          <button style={{ ...s.btn, ...s.btnDanger }} onClick={handleLeave}>
+            [ покинуть комнату ]
+          </button>
+        )}
+      </div>
+
     </div>
   );
 }
 
 const s = {
-  page: { maxWidth: 480, margin: '0 auto', fontFamily: "'Courier New', Courier, monospace", fontSize: 14, backgroundColor: '#fff'},
+  page: { maxWidth: 480, margin: '0 auto', fontFamily: "'Courier New', Courier, monospace", fontSize: 14, backgroundColor: '#fff' },
   header: { fontSize: 12, lineHeight: 1.4, margin: '0 0 16px', color: '#000' },
   statusLine: { margin: '0 0 16px', fontSize: 14, color: '#000' },
   dim: { color: '#777', fontSize: 13 },
@@ -140,4 +187,11 @@ const s = {
     justifyContent: 'space-between',
   },
   resultValue: { fontSize: 52, lineHeight: 1, fontWeight: 'bold' },
+  leaveSection: { marginTop: 8, paddingBottom: 32 },
+  divider: { margin: '0 0 16px', color: '#ccc', lineHeight: 1 },
+  confirmBox: { background: '#f9f9f9', border: '1px solid #ccc', padding: '12px 16px' },
+  confirmText: { margin: '0 0 12px', fontSize: 13, color: '#333' },
+  btnRow: { display: 'flex', gap: 8, flexWrap: 'wrap' },
+  btn: { fontFamily: "'Courier New', monospace", fontSize: 13, background: '#fff', color: '#000', border: '1px solid #000', borderRadius: 0, padding: '8px 14px', cursor: 'pointer' },
+  btnDanger: { borderColor: '#888', color: '#555' },
 };

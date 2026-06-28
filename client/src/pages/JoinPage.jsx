@@ -1,12 +1,12 @@
 import { useState } from 'react';
 import api from '../api/http';
 
-const W = 42; // ширина рамки в символах
+const W = 42;
 const line = (char = '─') => char.repeat(W);
 
-export default function JoinPage({ onJoined }) {
+export default function JoinPage({ onJoined, initialCode, roomClosed }) {
   const [name, setName] = useState(localStorage.getItem('userName') || '');
-  const [code, setCode] = useState('');
+  const [code, setCode] = useState(initialCode || '');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -63,6 +63,11 @@ export default function JoinPage({ onJoined }) {
  ╚═╝      ╚═════╝ ╚═╝  ╚═╝╚══════╝╚═╝  ╚═╝
 `}</pre>
 
+      {/* Уведомление о закрытии комнаты */}
+      {roomClosed && (
+        <p style={s.notice}>! комната была закрыта администратором</p>
+      )}
+
       {error && (
         <p style={s.error}>! {error}</p>
       )}
@@ -71,6 +76,7 @@ export default function JoinPage({ onJoined }) {
       <div style={s.group}>
         <label style={s.label}>Имя:</label>
         <input
+          style={s.input}
           placeholder="введи имя..."
           value={name}
           onChange={e => { setName(e.target.value); setError(''); }}
@@ -79,9 +85,7 @@ export default function JoinPage({ onJoined }) {
       </div>
 
       {/* Разделитель */}
-      <pre style={s.sep}>{`${line()}
- -- войти в существующую комнату --
-${line()}`}</pre>
+      <pre style={s.sep}>{`${line()}\n -- войти в существующую комнату --\n${line()}`}</pre>
 
       {/* Код комнаты */}
       <div style={s.group}>
@@ -93,33 +97,30 @@ ${line()}`}</pre>
           onChange={e => { setCode(e.target.value.toUpperCase()); setError(''); }}
           onKeyDown={e => e.key === 'Enter' && handleJoin(e)}
           maxLength={6}
-          style={{ letterSpacing: 6, textTransform: 'uppercase' }}
         />
       </div>
-      <button style={{ ...s.btn, width: '100%', marginBottom: 16, textAlign: 'center' }} onClick={handleJoin} disabled={loading}>
+      <button style={{ ...s.btn, width: '100%', marginBottom: 16 }} onClick={handleJoin} disabled={loading}>
         [ Войти ]
       </button>
 
-      <pre style={s.sep}>{`${line()}
- -- или --
-${line()}`}</pre>
+      <pre style={s.sep}>{`${line()}\n -- или --\n${line()}`}</pre>
 
-      <button style={{ ...s.btn, width: '100%', marginBottom: 16, textAlign: 'center' }}
-        onClick={handleCreateRoom}
-        disabled={loading}>
+      <button style={{ ...s.btn, width: '100%', marginBottom: 16 }} onClick={handleCreateRoom} disabled={loading}>
         [ Создать комнату (я — администратор) ]
       </button>
+
     </div>
   );
 }
 
 const s = {
-  page: { maxWidth: 460, margin: '0 auto', fontFamily: "'Courier New', monospace", backgroundColor: '#fff'},
+  page: { maxWidth: 460, margin: '0 auto', fontFamily: "'Courier New', monospace", backgroundColor: '#fff' },
   logo: { fontSize: 10, lineHeight: 1.2, color: '#000', margin: '0 0 24px', fontFamily: "'Courier New', monospace" },
   group: { marginBottom: 12 },
-  label: { display: 'block', fontSize: 13, marginBottom: 4, color: '#000000' },
+  label: { display: 'block', fontSize: 13, marginBottom: 4, color: '#000' },
+  input: { fontFamily: "'Courier New', monospace", fontSize: 14, width: '100%', boxSizing: 'border-box', padding: '8px 10px', border: '1px solid #000', borderRadius: 0, outline: 'none', background: '#fff' },
   btn: { fontFamily: "'Courier New', monospace", fontSize: 14, background: '#fff', color: '#000', border: '1px solid #000', borderRadius: 0, padding: '10px 16px', cursor: 'pointer', textAlign: 'left' },
   sep: { fontSize: 11, color: '#aaa', margin: '16px 0', lineHeight: 1.4, fontFamily: "'Courier New', monospace" },
   error: { border: '1px solid #000', padding: '8px 12px', marginBottom: 16, fontSize: 13, background: '#f5f5f5' },
-
+  notice: { border: '1px solid #888', padding: '8px 12px', marginBottom: 16, fontSize: 13, background: '#f5f5f5', color: '#555' },
 };

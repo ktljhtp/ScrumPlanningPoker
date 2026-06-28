@@ -7,7 +7,9 @@ export function SocketProvider({ children, sessionReady }) {
   const [isConnected, setIsConnected] = useState(socket.connected);
 
   useEffect(() => {
-    if (!sessionReady) return; // ждём, пока HTTP-сессия не готова
+    // Подключаемся только после того, как HTTP-сессия установлена
+    // (кука sessionId уже записана в браузер)
+    if (!sessionReady) return;
 
     socket.connect();
 
@@ -21,7 +23,7 @@ export function SocketProvider({ children, sessionReady }) {
       socket.off('connect', onConnect);
       socket.off('disconnect', onDisconnect);
     };
-  }, [sessionReady]); // перезапускаем только когда сессия готова
+  }, [sessionReady]);
 
   return (
     <SocketContext.Provider value={{ socket, isConnected }}>

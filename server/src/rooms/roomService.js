@@ -1,7 +1,6 @@
 const { nanoid } = require('nanoid');
 const { rooms, sessions } = require('./store');
 
-// Генерация кода комнаты: 6 символов, только заглавные буквы и цифры
 function generateRoomCode() {
   const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
   let code;
@@ -9,7 +8,7 @@ function generateRoomCode() {
     code = Array.from({ length: 6 }, () =>
       chars[Math.floor(Math.random() * chars.length)]
     ).join('');
-  } while (rooms.has(code)); // гарантируем уникальность
+  } while (rooms.has(code));
   return code;
 }
 
@@ -41,6 +40,25 @@ function joinRoom(code, sessionId, name) {
   return room;
 }
 
+// Удаляет участника из комнаты. Возвращает имя удалённого или null.
+function removeParticipant(code, sessionId) {
+  const room = getRoom(code);
+  if (!room) return null;
+  const participant = room.participants.get(sessionId);
+  if (!participant) return null;
+  room.participants.delete(sessionId);
+  // Пересчитываем кворум, если раунд активен
+  if (room.status === 'active') {
+    room.quorum = room.participants.size;
+  }
+  return participant.name;
+}
+
+// Полностью удаляет комнату.
+function closeRoom(code) {
+  rooms.delete(code);
+}
+
 function castVote(code, sessionId, value) {
   const room = getRoom(code);
   if (!room || room.status !== 'active') return { ok: false, reason: 'not_active' };
@@ -62,7 +80,6 @@ function startRound(code) {
   room.status = 'active';
   room.currentRound++;
   room.quorum = room.participants.size;
-  // Сбрасываем голоса всех участников
   for (const p of room.participants.values()) {
     p.hasVoted = false;
     p.vote = null;
@@ -99,7 +116,6 @@ function stopRound(code) {
   return { result, allVotes, votedCount: votes.length };
 }
 
-// Очистка комнат без активности более 24 часов
 function cleanupRooms() {
   const now = Date.now();
   for (const [code, room] of rooms.entries()) {
@@ -109,6 +125,6 @@ function cleanupRooms() {
   }
 }
 
-setInterval(cleanupRooms, 60 * 60 * 1000); // раз в час
+setInterval(cleanupRooms, 60 * 60 * 1000);
 
-module.exports = { createRoom, getRoom, joinRoom, castVote, startRound, stopRound };
+module.exports = { createRoom, getRoom, joinRoom, removeParticipant, closeRoom, castVote, startRound, stopRound };

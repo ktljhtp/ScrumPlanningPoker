@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import ParticipantList from '../components/ParticipantList';
 import { useSocket } from '../context/SocketContext';
 
-export default function AdminPage({ roomCode }) {
+export default function AdminPage({ roomCode, onClosed }) {
   const { socket } = useSocket();
 
   const [status, setStatus] = useState('waiting');
@@ -12,6 +12,8 @@ export default function AdminPage({ roomCode }) {
   const [result, setResult] = useState(null);
   const [allVotes, setAllVotes] = useState(null);
   const [copied, setCopied] = useState(false);
+  const [confirmClose, setConfirmClose] = useState(false);
+  const [closing, setClosing] = useState(false);
 
   const joinUrl = `${roomCode}`;
 
@@ -31,14 +33,12 @@ export default function AdminPage({ roomCode }) {
     const onParticipantLeft = ({ name }) => {
       setParticipants(prev => prev.filter(p => p.name !== name));
     };
-    const onVoteCast = ({ votedCount: vc, quorum: q, voterName }) => {
+    const onVoteCast = ({ votedCount: vc, quorum: q }) => {
       setVotedCount(vc);
       setQuorum(q);
-      if (voterName) {
-        setParticipants(prev =>
-          prev.map(p => p.name === voterName ? { ...p, hasVoted: true } : p)
-        );
-      }
+    };
+    const onQuorumUpdated = ({ quorum: q }) => {
+      setQuorum(q);
     };
     const onRoundStarted = ({ quorum: q }) => {
       setStatus('active');
@@ -59,15 +59,21 @@ export default function AdminPage({ roomCode }) {
       setAllVotes(null);
       setVotedCount(0);
     };
+    // Сервер подтвердил закрытие — переходим на главную
+    const onRoomClosed = () => {
+      onClosed();
+    };
 
     socket.on('connect', doJoin);
     socket.on('room_joined', onRoomJoined);
     socket.on('participant_joined', onParticipantJoined);
     socket.on('participant_left', onParticipantLeft);
     socket.on('vote_cast', onVoteCast);
+    socket.on('quorum_updated', onQuorumUpdated);
     socket.on('round_started', onRoundStarted);
     socket.on('round_stopped', onRoundStopped);
     socket.on('new_round_ready', onNewRoundReady);
+    socket.on('room_closed', onRoomClosed);
     if (socket.connected) doJoin();
 
     return () => {
@@ -76,9 +82,11 @@ export default function AdminPage({ roomCode }) {
       socket.off('participant_joined', onParticipantJoined);
       socket.off('participant_left', onParticipantLeft);
       socket.off('vote_cast', onVoteCast);
+      socket.off('quorum_updated', onQuorumUpdated);
       socket.off('round_started', onRoundStarted);
       socket.off('round_stopped', onRoundStopped);
       socket.off('new_round_ready', onNewRoundReady);
+      socket.off('room_closed', onRoomClosed);
     };
   }, [roomCode, socket]);
 
@@ -86,19 +94,25 @@ export default function AdminPage({ roomCode }) {
   function stopRound()  { socket.emit('stop_round',  { roomCode }); }
   function newRound()   { socket.emit('new_round',   { roomCode }); }
 
-  // Функции копирования
+  function handleCloseRoom() {
+    if (!confirmClose) {
+      setConfirmClose(true);
+      return;
+    }
+    setClosing(true);
+    socket.emit('close_room', { roomCode });
+    // onClosed() вызовется когда сервер пришлёт room_closed
+  }
+
   function copyLink() {
     const text = joinUrl;
     if (navigator.clipboard && navigator.clipboard.writeText) {
-     navigator.clipboard.writeText(text)
-       .then(() => {
-         setCopied(true);
-          setTimeout(() => setCopied(false), 2000);
-       })
-       .catch(() => fallbackCopy(text));
+      navigator.clipboard.writeText(text)
+        .then(() => { setCopied(true); setTimeout(() => setCopied(false), 2000); })
+        .catch(() => fallbackCopy(text));
     } else {
-     fallbackCopy(text);
-   }
+      fallbackCopy(text);
+    }
   }
 
   function fallbackCopy(text) {
@@ -109,11 +123,11 @@ export default function AdminPage({ roomCode }) {
     document.body.appendChild(textarea);
     textarea.select();
     try {
-     document.execCommand('copy');
-     setCopied(true);
-     setTimeout(() => setCopied(false), 2000);
-    } catch (err) {
-     alert('Не удалось скопировать ссылку. Попробуйте вручную.');
+      document.execCommand('copy');
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      alert('Не удалось скопировать. Попробуй вручную.');
     }
     document.body.removeChild(textarea);
   }
@@ -152,7 +166,7 @@ export default function AdminPage({ roomCode }) {
         {status === 'active' && <>{' || голоса: '}<strong>{votedCount}/{quorum}</strong></>}
       </p>
 
-      {/* Кнопки управления */}
+      {/* Кнопки управления раундом */}
       <div style={s.btnRow}>
         <button style={s.btn} onClick={startRound} disabled={status === 'active' || participants.length === 0}>
           [ Старт раунда ]
@@ -194,6 +208,39 @@ export default function AdminPage({ roomCode }) {
 
       {/* Список участников */}
       <ParticipantList participants={participants} showVotes={status === 'stopped'} />
+
+      {/* Закрытие комнаты */}
+      <div style={s.closeSection}>
+        <pre style={s.divider}>{'─'.repeat(40)}</pre>
+        {confirmClose ? (
+          <div style={s.confirmBox}>
+            <p style={s.confirmText}>
+              {'! комната будет закрыта, все участники отключатся'}
+            </p>
+            <div style={s.btnRow}>
+              <button
+                style={{ ...s.btn, ...s.btnDanger }}
+                onClick={handleCloseRoom}
+                disabled={closing}
+              >
+                {closing ? '[ закрываем... ]' : '[ да, закрыть комнату ]'}
+              </button>
+              <button
+                style={s.btn}
+                onClick={() => setConfirmClose(false)}
+                disabled={closing}
+              >
+                [ отмена ]
+              </button>
+            </div>
+          </div>
+        ) : (
+          <button style={{ ...s.btn, ...s.btnDanger }} onClick={handleCloseRoom}>
+            [ закрыть комнату ]
+          </button>
+        )}
+      </div>
+
     </div>
   );
 }
@@ -214,7 +261,7 @@ const logo = `
                                            ADMIN`;
 
 const s = {
-  page: { maxWidth: 560, margin: '0 auto', fontFamily: "'Courier New', Courier, monospace", fontSize: 14, backgroundColor: '#fff'},
+  page: { maxWidth: 560, margin: '0 auto', fontFamily: "'Courier New', Courier, monospace", fontSize: 14, backgroundColor: '#fff' },
   logo: { fontSize: 9, lineHeight: 1.2, margin: '0 0 20px', color: '#000' },
   box: { marginBottom: 16 },
   boxTop: { margin: 0, lineHeight: 1, color: '#000' },
@@ -226,4 +273,9 @@ const s = {
   btn: { fontFamily: "'Courier New', monospace", fontSize: 13, background: '#fff', color: '#000', border: '1px solid #000', borderRadius: 0, padding: '8px 14px', cursor: 'pointer' },
   resultBox: { marginBottom: 20 },
   voteLine: { display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #ddd', padding: '4px 0', fontSize: 14 },
+  closeSection: { marginTop: 8, paddingBottom: 32 },
+  divider: { margin: '0 0 16px', color: '#ccc', lineHeight: 1 },
+  btnDanger: { borderColor: '#888', color: '#555' },
+  confirmBox: { background: '#f9f9f9', border: '1px solid #ccc', padding: '12px 16px' },
+  confirmText: { margin: '0 0 12px', fontSize: 13, color: '#333' },
 };
