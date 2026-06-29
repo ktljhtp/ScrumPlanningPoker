@@ -30,8 +30,6 @@ module.exports = function (io) {
       socket.participantName = name;
       socket.isAdmin = room.adminSessionId === sessionId;
 
-      console.log(`[join_room] socket=${socket.id} room=${roomCode} sessionId=${sessionId} isAdmin=${socket.isAdmin}`);
-
       const participants = [...room.participants.entries()].map(([sid, p]) => ({
         name: p.name,
         hasVoted: p.hasVoted,
@@ -65,16 +63,12 @@ module.exports = function (io) {
       socket.leave(roomCode);
       socket.roomCode = null;
       socket.emit('left_room');
-
-      console.log(`[leave_room] ${name} покинул ${roomCode}`);
     });
 
     // Администратор закрывает комнату
     socket.on('close_room', ({ roomCode }) => {
       const room = roomService.getRoom(roomCode);
       if (!room || !socket.isAdmin) return;
-
-      console.log(`[close_room] admin закрывает комнату ${roomCode}`);
 
       // Сначала рассылаем событие всем в комнате
       io.to(roomCode).emit('room_closed');
