@@ -145,7 +145,6 @@ module.exports = function (io) {
     });
 
     socket.on('disconnect', () => {
-      console.log(`[disconnect] socket=${socket.id}`);
       if (socket.roomCode) {
         const room = roomService.getRoom(socket.roomCode);
         const participant = room?.participants.get(socket.sessionId);

@@ -42,18 +42,18 @@ export default function JoinPage({ onJoined, initialCode, roomClosed }) {
 
       {/* Логотип */}
       <pre style={s.logo}>{`
- ███████╗ ██████╗██████╗ ██╗   ██╗███╗   ███║
- ██╔════╝██╔════╝██╔══██╗██║   ██║████╗ ████║
- ███████╗██║     ██████╔╝██║   ██║██╔████╔██║
- ╚════██║██║     ██╔══██╗██║   ██║██║╚██╔╝██║
- ███████║╚██████╗██║  ██║╚██████╔╝██║ ╚═╝ ██║
- ╚══════╝ ╚═════╝╚═╝  ╚═╝ ╚═════╝ ╚═╝     ╚═╝
+███████╗ ██████╗██████╗ ██╗   ██╗███╗   ███║
+██╔════╝██╔════╝██╔══██╗██║   ██║████╗ ████║
+███████╗██║     ██████╔╝██║   ██║██╔████╔██║
+╚════██║██║     ██╔══██╗██║   ██║██║╚██╔╝██║
+███████║╚██████╗██║  ██║╚██████╔╝██║ ╚═╝ ██║
+╚══════╝ ╚═════╝╚═╝  ╚═╝ ╚═════╝ ╚═╝     ╚═╝
 
 ██████╗ ██╗      █████╗ ███╗   ██╗███╗   ██╗██╗███╗   ██╗ ██████╗
 ██╔══██╗██║     ██╔══██╗████╗  ██║████╗  ██║██║████╗  ██║██╔════╝
- ██████╔╝██║     ███████║██╔██╗ ██║██╔██╗ ██║██║██╔██╗ ██║██║  ███╗
- ██╔═══╝ ██║     ██╔══██║██║╚██╗██║██║╚██╗██║██║██║╚██╗██║██║   ██║
- ██║     ███████╗██║  ██║██║ ╚████║██║ ╚████║██║██║ ╚████║╚██████╔╝
+██████╔╝██║     ███████║██╔██╗ ██║██╔██╗ ██║██║██╔██╗ ██║██║  ███╗
+██╔═══╝ ██║     ██╔══██║██║╚██╗██║██║╚██╗██║██║██║╚██╗██║██║   ██║
+██║     ███████╗██║  ██║██║ ╚████║██║ ╚████║██║██║ ╚████║╚██████╔╝
 ╚═╝     ╚══════╝╚═╝  ╚═╝╚═╝  ╚═══╝╚═╝  ╚═══╝╚═╝╚═╝  ╚═══╝ ╚═════╝
 
 ██████╗  ██████╗ ██╗  ██╗███████╗██████╗
@@ -100,7 +100,7 @@ export default function JoinPage({ onJoined, initialCode, roomClosed }) {
           maxLength={6}
         />
       </div>
-      <button style={{ ...s.btn, width: '100%', marginBottom: 16 }} onClick={handleJoin} disabled={loading}>
+      <button style={{ ...s.btn, width: '100%', marginBottom: 16, textAlign: 'center' }} onClick={handleJoin} disabled={loading}>
         [ Войти ]
       </button>
 
@@ -130,7 +130,7 @@ export default function JoinPage({ onJoined, initialCode, roomClosed }) {
         </div>
       </div>
 
-      <button style={{ ...s.btn, width: '100%', marginBottom: 16 }} onClick={handleCreateRoom} disabled={loading}>
+      <button style={{ ...s.btn, width: '100%', marginBottom: 16, textAlign: 'center' }} onClick={handleCreateRoom} disabled={loading}>
         [ Создать комнату (я — администратор) ]
       </button>
 
@@ -139,14 +139,14 @@ export default function JoinPage({ onJoined, initialCode, roomClosed }) {
 }
 
 const s = {
-  page: { maxWidth: 460, margin: '0 auto', fontFamily: "'Courier New', monospace", backgroundColor: '#fff' },
+  page: { maxWidth: 460, margin: '0 auto', padding: '16px 16px 0', fontFamily: "'Courier New', monospace", backgroundColor: '#fff', boxSizing: 'border-box' },
   logo: { fontSize: 10, lineHeight: 1.2, color: '#000', margin: '0 0 24px', fontFamily: "'Courier New', monospace" },
   group: { marginBottom: 12 },
   label: { display: 'block', fontSize: 13, marginBottom: 4, color: '#000' },
   radioLabel: { display: 'flex', alignItems: 'center', fontSize: 13, color: '#000', cursor: 'pointer', fontFamily: "'Courier New', monospace" },
   input: { fontFamily: "'Courier New', monospace", fontSize: 14, width: '100%', boxSizing: 'border-box', padding: '8px 10px', border: '1px solid #000', borderRadius: 0, outline: 'none', background: '#fff' },
   btn: { fontFamily: "'Courier New', monospace", fontSize: 14, background: '#fff', color: '#000', border: '1px solid #000', borderRadius: 0, padding: '10px 16px', cursor: 'pointer', textAlign: 'left' },
-  sep: { fontSize: 11, color: '#aaa', margin: '16px 0', lineHeight: 1.4, fontFamily: "'Courier New', monospace" },
+  sep: { fontSize: 11, color: '#aaa', margin: '16px 0', lineHeight: 1.4, fontFamily: "'Courier New', monospace", textAlign: 'center' },
   error: { border: '1px solid #000', padding: '8px 12px', marginBottom: 16, fontSize: 13, background: '#f5f5f5' },
   notice: { border: '1px solid #888', padding: '8px 12px', marginBottom: 16, fontSize: 13, background: '#f5f5f5', color: '#555' },
 };

@@ -109,13 +109,31 @@ export default function ParticipantPage({ roomCode, name, onLeft }) {
       {/* Шапка */}
       <pre style={s.header}>
   {(() => {
-    const safeRoomCode = String(roomCode || '').slice(0, 10);
-    const safeName = String(name || '').slice(0, 20);
     const W = 34;
-    const header = `
+
+// Функция для центрирования текста
+const center = (text) => {
+  const padding = Math.floor((W - text.length) / 2);
+  return ' '.repeat(padding) + text + ' '.repeat(W - text.length - padding);
+};
+
+// Функция для левого выравнивания с отступом
+const leftWithPadding = (prefix, value) => {
+  const full = '   ' + prefix + value; // 3 пробела слева
+  if (full.length >= W) return full.slice(0, W);
+  return full + ' '.repeat(W - full.length);
+};
+
+// Данные
+const safeRoomCode = String(roomCode || '').slice(0, 10);
+const safeName = String(name || '').slice(0, 20);
+
+// Формируем шапку
+const header = `
 ┌${'─'.repeat(W)}┐
- SCRUM POKER  комната: ${safeRoomCode.padEnd(W - 22)} 
- участник:    ${safeName.padEnd(W - 14)} 
+${center('SCRUM POKER')}
+${leftWithPadding('комната: ', safeRoomCode)}
+${leftWithPadding('участник: ', safeName)}
 └${'─'.repeat(W)}┘
 `;
     return header;
@@ -123,7 +141,7 @@ export default function ParticipantPage({ roomCode, name, onLeft }) {
 </pre>
       {topic && (
   <div>
-    <p style={{ ...s.dim, margin: '0 0 -10px' }}>тема:</p>
+    <p style={{ ...s.dim, margin: '0 0 -5px' }}>тема:</p>
     <p style={{ margin: 0, fontWeight: 'bold' }}>{topic}</p>
   </div>
 )}
@@ -184,19 +202,19 @@ export default function ParticipantPage({ roomCode, name, onLeft }) {
 }
 
 const s = {
-  page: { maxWidth: 480, margin: '0 auto', fontFamily: "'Courier New', Courier, monospace", fontSize: 14, backgroundColor: '#fff' },
-  header: { fontSize: 12, lineHeight: 1.4, margin: '0 0 16px', color: '#000' },
-  statusLine: { margin: '0 0 16px', fontSize: 14, color: '#000' },
+  page: { maxWidth: 480, margin: '0 auto', padding: '16px 16px 0', fontFamily: "'Courier New', Courier, monospace", fontSize: 14, backgroundColor: '#fff', boxSizing: 'border-box' },
+  header: { fontSize: 12, lineHeight: 1.4, margin: '0 0 16px', color: '#000', textAlign: 'center'},
+  statusLine: { margin: '10px 0 5px', fontSize: 14, color: '#000' },
   dim: { color: '#777', fontSize: 13 },
   voted: { margin: '0 0 16px', color: '#000', fontSize: 14 },
-  resultBox: { marginBottom: 20 },
+  resultBox: { marginBottom: 20, textAlign: 'center' },
   corner: { margin: 0, lineHeight: 1, color: '#000' },
   resultInner: {
     padding: '8px 16px', display: 'flex', alignItems: 'center',
     justifyContent: 'space-between',
   },
   resultValue: { fontSize: 52, lineHeight: 1},
-  leaveSection: { marginTop: 8, paddingBottom: 32 },
+  leaveSection: { marginTop: 8, paddingBottom: 32, textAlign: 'center' },
   divider: { margin: '0 0 16px', color: '#ccc', lineHeight: 1 },
   confirmBox: { background: '#f9f9f9', border: '1px solid #ccc', padding: '12px 16px' },
   confirmText: { margin: '0 0 12px', fontSize: 13, color: '#333' },

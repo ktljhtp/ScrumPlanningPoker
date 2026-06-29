@@ -23,7 +23,6 @@ export default function ParticipantList({ participants, showVotes }) {
           </span>
         </div>
       ))}
-      <pre style={s.line}>{'─'.repeat(36)}</pre>
     </div>
   );
 }
@@ -31,9 +30,9 @@ export default function ParticipantList({ participants, showVotes }) {
 const s = {
   wrap: { marginTop: 8, fontFamily: "'Courier New', Courier, monospace" },
   empty: { marginTop: 8 },
-  pre: { fontSize: 12, lineHeight: 1.3, color: '#000', margin: 0 },
+  pre: { fontSize: 12, lineHeight: 1.3, color: '#000', margin: 0, textAlign: 'center'  },
   heading: { fontSize: 13, color: '#555', margin: '0 0 4px' },
-  line: { color: '#aaa', margin: '2px 0', fontSize: 12 },
+  line: { color: '#aaa', margin: '2px 0', fontSize: 12, textAlign: 'center' },
   row: {
     display: 'flex',
     justifyContent: 'space-between',
@@ -41,6 +40,7 @@ const s = {
     borderBottom: '1px dashed #ddd',
     fontSize: 14,
     fontFamily: "'Courier New', Courier, monospace",
+    
   },
   name: { color: '#000' },
   voted: { color: '#000', fontWeight: 'bold' },

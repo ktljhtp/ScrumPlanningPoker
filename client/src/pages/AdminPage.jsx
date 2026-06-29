@@ -350,12 +350,12 @@ export default function AdminPage({ roomCode, onClosed }) {
 }
 
 const logo = `                      
-  ███████╗ ██████╗██████╗ ██╗   ██╗███╗   ███║
- ██╔════╝██╔════╝██╔══██╗██║   ██║████╗ ████║
- ███████╗██║     ██████╔╝██║   ██║██╔████╔██║
- ╚════██║██║     ██╔══██╗██║   ██║██║╚██╔╝██║
- ███████║╚██████╗██║  ██║╚██████╔╝██║ ╚═╝ ██║
- ╚══════╝ ╚═════╝╚═╝  ╚═╝ ╚═════╝ ╚═╝     ╚═╝
+███████╗ ██████╗██████╗ ██╗   ██╗███╗   ███║
+██╔════╝██╔════╝██╔══██╗██║   ██║████╗ ████║
+███████╗██║     ██████╔╝██║   ██║██╔████╔██║
+╚════██║██║     ██╔══██╗██║   ██║██║╚██╔╝██║
+███████║╚██████╗██║  ██║╚██████╔╝██║ ╚═╝ ██║
+╚══════╝ ╚═════╝╚═╝  ╚═╝ ╚═════╝ ╚═╝     ╚═╝
 ██████╗  ██████╗ ██╗  ██╗███████╗██████╗
  ██╔══██╗██╔═══██╗██║ ██╔╝██╔════╝██╔══██╗
  ██████╔╝██║   ██║█████╔╝ █████╗  ██████╔╝
@@ -365,15 +365,15 @@ const logo = `
                                            ADMIN`;
 
 const s = {
-  page: { maxWidth: 560, margin: '0 auto', fontFamily: "'Courier New', Courier, monospace", fontSize: 14, backgroundColor: '#fff' },
-  logo: { fontSize: 9, lineHeight: 1.2, margin: '0 0 20px', color: '#000' },
+  page: { maxWidth: 560, margin: '0 auto', padding: '16px 16px 0', fontFamily: "'Courier New', Courier, monospace", fontSize: 14, backgroundColor: '#fff', boxSizing: 'border-box' },
+  logo: { fontSize: 9, lineHeight: 1.2, margin: '0 0 20px', color: '#000', textAlign: 'center' },
   box: { marginBottom: 16 },
-  boxTop: { margin: 0, lineHeight: 1, color: '#000' },
-  boxBot: { margin: 0, lineHeight: 1, color: '#000' },
-  boxBody: { padding: '4px 12px', lineHeight: 1.6 },
-  dim: { color: '#555', fontSize: 13 },
+  boxTop: { margin: 0, lineHeight: 1, color: '#000', textAlign: 'center' },
+  boxBot: { margin: 0, lineHeight: 1, color: '#000', textAlign: 'center' },
+  boxBody: { padding: '4px 12px', lineHeight: 1.6, textAlign: 'center' },
+  dim: { color: '#555', fontSize: 13, textAlign: 'center' },
   statusLine: { margin: '12px 0', fontSize: 13, color: '#555' },
-  btnRow: { display: 'flex', gap: 8, marginBottom: 20, flexWrap: 'wrap' },
+  btnRow: { display: 'flex', gap: 8, marginBottom: 20, flexWrap: 'wrap', textAlign: 'center' },
   btn: { fontFamily: "'Courier New', monospace", fontSize: 13, background: '#fff', color: '#000', border: '1px solid #000', borderRadius: 0, padding: '8px 14px', cursor: 'pointer' },
   resultBox: { marginBottom: 20 },
   histRow: { display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, marginBottom: 3, fontFamily: "'Courier New', monospace" },
@@ -381,8 +381,8 @@ const s = {
   histBar: { color: '#000', letterSpacing: -1 },
   histCount: { color: '#555', fontSize: 12 },
   voteLine: { display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #ddd', padding: '4px 0', fontSize: 14 },
-  closeSection: { marginTop: 8, paddingBottom: 32 },
-  divider: { margin: '0 0 16px', color: '#ccc', lineHeight: 1 },
+  closeSection: { marginTop: 8, paddingBottom: 32, textAlign: 'center'  },
+  divider: { margin: '0 0 16px', color: '#ccc', lineHeight: 1, textAlign: 'center' }, // ← добавлено textAlign: 'center'
   btnDanger: { borderColor: '#888', color: '#555' },
   confirmBox: { background: '#f9f9f9', border: '1px solid #ccc', padding: '12px 16px' },
   confirmText: { margin: '0 0 12px', fontSize: 13, color: '#333' },
