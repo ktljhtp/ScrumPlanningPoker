@@ -12,6 +12,9 @@ function generateRoomCode() {
   return code;
 }
 
+// Стандартная колода по ТЗ: числа Фибоначчи + специальные значения
+const DEFAULT_DECK = [0, 1, 2, 3, 5, 8, 13, 20, 40, 100, '?', '∞'];
+
 function createRoom(adminSessionId, options = {}) {
   const code = generateRoomCode();
   const room = {
@@ -19,8 +22,8 @@ function createRoom(adminSessionId, options = {}) {
     adminSessionId,
     participants: new Map(),
     status: 'waiting',
-    quorum: options.quorum || 999,
-    deck: options.deck || [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12],
+    quorum: options.quorum ? Number(options.quorum) : 999,
+    deck: options.deck || DEFAULT_DECK,
     resultMode: options.resultMode || 'median',
     currentRound: 0,
     createdAt: Date.now(),
@@ -48,10 +51,8 @@ function removeParticipant(code, sessionId) {
   const participant = room.participants.get(sessionId);
   if (!participant) return null;
   room.participants.delete(sessionId);
-  // Пересчитываем кворум, если раунд активен
-  if (room.status === 'active') {
-    room.quorum = room.participants.size;
-  }
+  // Кворум НЕ пересчитываем автоматически —
+  // по ТЗ администратор устанавливает кворум вручную независимо от числа участников
   return participant.name;
 }
 
@@ -75,12 +76,15 @@ function castVote(code, sessionId, value) {
   return { ok: true, votedCount, quorumReached };
 }
 
-function startRound(code) {
+function startRound(code, quorum) {
   const room = getRoom(code);
   if (!room) return null;
   room.status = 'active';
   room.currentRound++;
-  room.quorum = room.participants.size;
+  // Устанавливаем кворум только если явно передан; иначе оставляем текущий
+  if (quorum !== undefined && quorum !== null) {
+    room.quorum = Number(quorum);
+  }
   for (const p of room.participants.values()) {
     p.hasVoted = false;
     p.vote = null;
@@ -93,28 +97,33 @@ function stopRound(code) {
   if (!room) return null;
   room.status = 'stopped';
 
-  const votes = [...room.participants.values()]
+  // Собираем только числовые голоса для вычисления итога
+  const numericVotes = [...room.participants.values()]
     .filter(p => p.hasVoted && typeof p.vote === 'number')
     .map(p => p.vote)
     .sort((a, b) => a - b);
 
-  let result;
-  if (votes.length === 0) {
-    result = null;
-  } else if (room.resultMode === 'median') {
-    const mid = Math.floor(votes.length / 2);
-    result = votes.length % 2 === 0
-      ? (votes[mid - 1] + votes[mid]) / 2
-      : votes[mid];
-  } else if (room.resultMode === 'average') {
-    result = votes.reduce((a, b) => a + b, 0) / votes.length;
+  let result = null;
+  if (numericVotes.length > 0) {
+    if (room.resultMode === 'average') {
+      result = Math.round((numericVotes.reduce((a, b) => a + b, 0) / numericVotes.length) * 10) / 10;
+    } else {
+      // median — используется и для 'median', и для 'all'
+      const mid = Math.floor(numericVotes.length / 2);
+      result = numericVotes.length % 2 === 0
+        ? (numericVotes[mid - 1] + numericVotes[mid]) / 2
+        : numericVotes[mid];
+    }
   }
 
-  const allVotes = room.resultMode === 'all'
-    ? [...room.participants.entries()].map(([sid, p]) => ({ name: p.name, vote: p.vote }))
-    : null;
+  // allVotes возвращаем для режимов 'all' и всегда для полноты (используется в гистограмме)
+  const allVotes = [...room.participants.entries()]
+    .filter(([, p]) => p.hasVoted)
+    .map(([, p]) => ({ name: p.name, vote: p.vote }));
 
-  return { result, allVotes, votedCount: votes.length };
+  const votedCount = [...room.participants.values()].filter(p => p.hasVoted).length;
+
+  return { result, allVotes: allVotes.length > 0 ? allVotes : null, votedCount, resultMode: room.resultMode };
 }
 
 function cleanupRooms() {

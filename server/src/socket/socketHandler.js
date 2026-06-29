@@ -46,6 +46,7 @@ module.exports = function (io) {
         isAdmin: socket.isAdmin,
         hasVoted: room.participants.get(sessionId)?.hasVoted || false,
         topic: room.topic || '',
+        resultMode: room.resultMode
       });
 
       socket.to(roomCode).emit('participant_joined', { name });
@@ -58,18 +59,14 @@ module.exports = function (io) {
 
       sessionService.updateSession(sessionId, { roomCode: null, name: null, hasVoted: false });
 
-      const room = roomService.getRoom(roomCode);
-      // Уведомляем остальных об уходе и пересчитанном кворуме
+      // Уведомляем остальных об уходе
       io.to(roomCode).emit('participant_left', { name });
-      if (room && room.status === 'active') {
-        io.to(roomCode).emit('quorum_updated', { quorum: room.quorum });
-      }
 
       socket.leave(roomCode);
       socket.roomCode = null;
       socket.emit('left_room');
 
-      console.log(`[leave_room] ${name} покинул ${roomCode}, новый кворум=${room?.quorum}`);
+      console.log(`[leave_room] ${name} покинул ${roomCode}`);
     });
 
     // Администратор закрывает комнату
@@ -91,8 +88,7 @@ module.exports = function (io) {
       const room = roomService.getRoom(roomCode);
       if (!room || !socket.isAdmin) return;
 
-      if (quorum !== undefined) room.quorum = Number(quorum);
-      roomService.startRound(roomCode);
+      roomService.startRound(roomCode, quorum);
 
       io.to(roomCode).emit('round_started', {
         round: room.currentRound,
@@ -126,6 +122,7 @@ module.exports = function (io) {
         io.to(roomCode).emit('round_stopped', {
           result: stopResult.result,
           allVotes: stopResult.allVotes,
+          resultMode: stopResult.resultMode,
           votedCount: stopResult.votedCount,
           reason: 'quorum',
         });
@@ -140,6 +137,7 @@ module.exports = function (io) {
       io.to(roomCode).emit('round_stopped', {
         result: stopResult.result,
         allVotes: stopResult.allVotes,
+        resultMode: stopResult.resultMode,
         votedCount: stopResult.votedCount,
         reason: 'manual',
       });

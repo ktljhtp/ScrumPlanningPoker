@@ -72,9 +72,9 @@ router.post('/room/:code/start', requireSession, (req, res) => {
   if (!room) return res.status(404).json({ error: 'Room not found' });
   if (room.adminSessionId !== req.sessionId) return res.status(403).json({ error: 'Not admin' });
 
-  if (req.body.quorum !== undefined) room.quorum = Number(req.body.quorum);
-  roomService.startRound(req.params.code);
-  res.json({ ok: true });
+  const quorum = req.body.quorum !== undefined ? Number(req.body.quorum) : undefined;
+  roomService.startRound(req.params.code, quorum);
+  res.json({ ok: true, quorum: room.quorum });
 });
 
 // POST /api/room/:code/stop

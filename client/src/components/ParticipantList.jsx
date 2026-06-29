@@ -16,9 +16,9 @@ export default function ParticipantList({ participants, showVotes }) {
       {participants.map((p, i) => (
         <div key={i} style={s.row}>
           <span style={s.name}>{p.name}</span>
-          <span style={p.hasVoted ? s.voted : s.pending}>
+          <span style={showVotes && p.vote !== undefined ? s.voted : p.hasVoted ? s.voted : s.pending}>
             {showVotes && p.vote !== undefined
-              ? `[${p.vote}]`
+              ? p.vote
               : p.hasVoted ? '[+]' : '[ ]'}
           </span>
         </div>
