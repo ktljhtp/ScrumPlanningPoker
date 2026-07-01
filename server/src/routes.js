@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const roomService = require('./rooms/roomService');
 const sessionService = require('./session/sessionService');
+const Vote = require('./rooms/vote');
 
 // Middleware: получить или создать сессию.
 // Если cookie есть но сессия не найдена (например, после рестарта сервера) —
@@ -40,7 +41,7 @@ router.get('/room/:code', requireSession, (req, res) => {
   const participants = [...room.participants.entries()].map(([sid, p]) => ({
     name: p.name,
     hasVoted: p.hasVoted,
-    vote: room.status === 'stopped' ? p.vote : undefined,
+    vote: room.status === 'stopped' ? Vote.unwrap(p.vote) : undefined,
   }));
 
   res.json({
@@ -59,9 +60,10 @@ router.post('/room/:code/join', requireSession, (req, res) => {
   const { name } = req.body;
   if (!name || !name.trim()) return res.status(400).json({ error: 'Name required' });
 
-  const room = roomService.joinRoom(req.params.code, req.sessionId, name.trim());
+  const room = roomService.getRoom(req.params.code);
   if (!room) return res.status(404).json({ error: 'Room not found' });
 
+  room.join(req.sessionId, name.trim());
   sessionService.updateSession(req.sessionId, { roomCode: room.code, name: name.trim() });
   res.json({ ok: true });
 });
@@ -73,7 +75,7 @@ router.post('/room/:code/start', requireSession, (req, res) => {
   if (room.adminSessionId !== req.sessionId) return res.status(403).json({ error: 'Not admin' });
 
   const quorum = req.body.quorum !== undefined ? Number(req.body.quorum) : undefined;
-  roomService.startRound(req.params.code, quorum);
+  room.startRound(quorum);
   res.json({ ok: true, quorum: room.quorum });
 });
 
@@ -83,14 +85,17 @@ router.post('/room/:code/stop', requireSession, (req, res) => {
   if (!room) return res.status(404).json({ error: 'Room not found' });
   if (room.adminSessionId !== req.sessionId) return res.status(403).json({ error: 'Not admin' });
 
-  const result = roomService.stopRound(req.params.code);
+  const result = room.stopRound();
   res.json({ ok: true, ...result });
 });
 
 // POST /api/room/:code/vote
 router.post('/room/:code/vote', requireSession, (req, res) => {
   const { value } = req.body;
-  const result = roomService.castVote(req.params.code, req.sessionId, value);
+  const room = roomService.getRoom(req.params.code);
+  if (!room) return res.status(404).json({ error: 'Room not found' });
+
+  const result = room.castVote(req.sessionId, value);
   if (!result.ok) return res.status(400).json({ error: result.reason });
   res.json({ ok: true, votedCount: result.votedCount });
 });
