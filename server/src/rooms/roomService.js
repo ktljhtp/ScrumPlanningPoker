@@ -1,31 +1,23 @@
-const Room = require('./Rooms.ts');
-const { roomRepository } = require('../repositories/RoomRepository');
+// Тонкая обёртка для обратной совместимости: roomController.js (WebSocket-путь)
+// как и раньше работает с простыми функциями createRoom/getRoom/closeRoom,
+// не зная о новом RoomService/RoomRepository. Реальная логика теперь в
+// src/services/RoomService.ts.
+const { roomService } = require('../services/RoomService');
 
 function createRoom(adminSessionId, options = {}) {
-  const code = roomRepository.generateUniqueCode();
-  const room = new Room(code, adminSessionId, options);
-  roomRepository.save(room);
-  return room;
+  return roomService.createRoom(adminSessionId, options);
 }
 
 function getRoom(code) {
-  return roomRepository.findByCode(code);
+  return roomService.getRoom(code);
 }
 
-// Полностью удаляет комнату.
+// closeRoom здесь — без проверки прав (её уже делает roomController.js
+// перед вызовом). Для проверенной версии см. roomService.closeRoom(code, sessionId).
 function closeRoom(code) {
-  roomRepository.delete(code);
+  roomService.deleteRoom(code);
 }
 
-function cleanupRooms() {
-  const now = Date.now();
-  for (const room of roomRepository.findAll()) {
-    if (now - room.createdAt > 24 * 60 * 60 * 1000) {
-      roomRepository.delete(room.code);
-    }
-  }
-}
-
-setInterval(cleanupRooms, 60 * 60 * 1000);
+setInterval(() => roomService.cleanupStale(), 60 * 60 * 1000);
 
 module.exports = { createRoom, getRoom, closeRoom };

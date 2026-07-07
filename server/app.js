@@ -1,7 +1,12 @@
 // Позволяет require(...) грузить .ts-файлы напрямую, без отдельного шага
 // сборки (см. tsconfig.json). Должно стоять раньше любых require, которые
 // (возможно, транзитивно) тянут .ts-модули.
-require('ts-node/register');
+require('ts-node').register({
+  compilerOptions: {
+    module: 'commonjs',
+    esModuleInterop: true,
+  }
+});
 
 const express = require('express');
 const http = require('http');

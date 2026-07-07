@@ -1,34 +1,21 @@
-const { nanoid } = require('nanoid');
-const { sessionRepository } = require('../repositories/SessionRepository');
-
-const SESSION_MAX_AGE = 86400; // 24 часа в секундах
+// Тонкая обёртка для обратной совместимости со старыми вызовами
+// (roomController.js). Реальная логика — в src/services/SessionService.ts.
+const { sessionService, setSessionCookie, SESSION_MAX_AGE } = require('../services/SessionService');
 
 function createSession() {
-  const sessionId = nanoid(32);
-  sessionRepository.create(sessionId, { roomCode: null, name: null, hasVoted: false });
-  return sessionId;
+  return sessionService.create();
 }
 
-// Восстанавливает сессию с существующим sessionId (например, после рестарта сервера)
 function restoreSession(sessionId) {
-  sessionRepository.create(sessionId, { roomCode: null, name: null, hasVoted: false });
-  return sessionId;
+  return sessionService.restore(sessionId);
 }
 
 function getSession(sessionId) {
-  return sessionRepository.findById(sessionId);
+  return sessionService.get(sessionId);
 }
 
 function updateSession(sessionId, data) {
-  return sessionRepository.update(sessionId, data);
-}
-
-function setSessionCookie(res, sessionId) {
-  res.cookie('sessionId', sessionId, {
-    httpOnly: true,
-    sameSite: 'lax',
-    maxAge: SESSION_MAX_AGE * 1000,
-  });
+  return sessionService.update(sessionId, data);
 }
 
 module.exports = { createSession, restoreSession, getSession, updateSession, setSessionCookie, SESSION_MAX_AGE };

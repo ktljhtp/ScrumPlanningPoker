@@ -1,8 +1,8 @@
-// Обработчик сокет-событий. Вся бизнес-логика вынесена в roomController —
-// здесь только маршрутизация: принять событие, вызвать контроллер, разослать
-// результат нужным клиентам.
+// Обработчик сокет-событий. Вся бизнес-логика — в RoomController
+// (src/controllers/RoomController.ts) — здесь только маршрутизация:
+// принять событие, вызвать контроллер, разослать Result нужным клиентам.
 
-const roomController = require('../rooms/roomController');
+const { roomController } = require('../controllers/RoomController');
 
 function parseCookies(cookieHeader) {
   const cookies = {};
@@ -21,27 +21,28 @@ module.exports = function (io) {
 
     socket.on('join_room', ({ roomCode, name }) => {
       const result = roomController.joinRoom(roomCode, sessionId);
-      if (!result.ok) {
-        socket.emit('error', { message: 'Room not found' });
+      if (!result.success) {
+        socket.emit('error', { message: result.error.message });
         return;
       }
+      const { data } = result;
 
       socket.join(roomCode);
       socket.roomCode = roomCode;
       socket.sessionId = sessionId;
       socket.participantName = name;
-      socket.isAdmin = result.isAdmin;
+      socket.isAdmin = data.isAdmin;
 
       socket.emit('room_joined', {
-        code: result.room.code,
-        status: result.room.status,
-        quorum: result.room.quorum,
-        deck: result.room.deck,
-        participants: result.participants,
-        isAdmin: result.isAdmin,
-        hasVoted: result.hasVoted,
-        topic: result.room.topic || '',
-        resultMode: result.room.resultMode,
+        code: data.room.code,
+        status: data.room.status,
+        quorum: data.room.quorum,
+        deck: data.room.deck,
+        participants: data.participants,
+        isAdmin: data.isAdmin,
+        hasVoted: data.hasVoted,
+        topic: data.room.topic || '',
+        resultMode: data.room.resultMode,
       });
 
       socket.to(roomCode).emit('participant_joined', { name });
@@ -50,10 +51,10 @@ module.exports = function (io) {
     // Участник покидает комнату
     socket.on('leave_room', ({ roomCode }) => {
       const result = roomController.leaveRoom(roomCode, sessionId);
-      if (!result.ok) return;
+      if (!result.success) return;
 
       // Уведомляем остальных об уходе
-      io.to(roomCode).emit('participant_left', { name: result.name });
+      io.to(roomCode).emit('participant_left', { name: result.data.name });
 
       socket.leave(roomCode);
       socket.roomCode = null;
@@ -63,44 +64,45 @@ module.exports = function (io) {
     // Администратор закрывает комнату
     socket.on('close_room', ({ roomCode }) => {
       const result = roomController.closeRoom(roomCode, sessionId);
-      if (!result.ok) return;
+      if (!result.success) return;
 
       io.to(roomCode).emit('room_closed');
     });
 
     socket.on('start_round', ({ roomCode, quorum }) => {
       const result = roomController.startRound(roomCode, sessionId, quorum);
-      if (!result.ok) return;
+      if (!result.success) return;
 
       io.to(roomCode).emit('round_started', {
-        round: result.round,
-        quorum: result.quorum,
+        round: result.data.round,
+        quorum: result.data.quorum,
       });
     });
 
     socket.on('set_topic', ({ roomCode, topic }) => {
       const result = roomController.setTopic(roomCode, sessionId, topic);
-      if (!result.ok) return;
+      if (!result.success) return;
 
-      io.to(roomCode).emit('topic_updated', { topic: result.topic });
+      io.to(roomCode).emit('topic_updated', { topic: result.data.topic });
     });
 
     socket.on('cast_vote', ({ roomCode, value }) => {
       const result = roomController.castVote(roomCode, sessionId, value);
-      if (!result.ok) {
-        socket.emit('vote_error', { reason: result.reason });
+      if (!result.success) {
+        socket.emit('vote_error', { code: result.error.code, message: result.error.message });
         return;
       }
+      const { data } = result;
 
       io.to(roomCode).emit('vote_cast', {
-        votedCount: result.votedCount,
-        quorum: result.quorum,
-        voterName: result.voterName,
+        votedCount: data.votedCount,
+        quorum: data.quorum,
+        voterName: data.voterName,
       });
 
-      if (result.stopResult) {
+      if (data.stopResult) {
         io.to(roomCode).emit('round_stopped', {
-          ...result.stopResult,
+          ...data.stopResult,
           reason: 'quorum',
         });
       }
@@ -108,17 +110,17 @@ module.exports = function (io) {
 
     socket.on('stop_round', ({ roomCode }) => {
       const result = roomController.stopRound(roomCode, sessionId);
-      if (!result.ok) return;
+      if (!result.success) return;
 
       io.to(roomCode).emit('round_stopped', {
-        ...result.stopResult,
+        ...result.data,
         reason: 'manual',
       });
     });
 
     socket.on('new_round', ({ roomCode }) => {
       const result = roomController.newRound(roomCode, sessionId);
-      if (!result.ok) return;
+      if (!result.success) return;
 
       io.to(roomCode).emit('new_round_ready');
     });
@@ -127,9 +129,9 @@ module.exports = function (io) {
       if (!socket.roomCode) return;
 
       const result = roomController.handleDisconnect(socket.roomCode, socket.sessionId);
-      if (!result.ok) return;
+      if (!result.success) return;
 
-      socket.to(socket.roomCode).emit('participant_left', { name: result.name });
+      socket.to(socket.roomCode).emit('participant_left', { name: result.data.name });
     });
   });
 };

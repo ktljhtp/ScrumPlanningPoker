@@ -1,7 +1,13 @@
 const express = require('express');
 const router = express.Router();
-const roomService = require('./rooms/roomService');
+
+// Тонкая обёртка над SessionService — оставляет привычные имена функций.
 const sessionService = require('./session/sessionService');
+// Новый RoomService с валидацией и Result — используется напрямую, без шима,
+// т.к. роуты нужен именно Result-based API (в отличие от roomController.js,
+// который работает через WebSocket и пока живёт на старом { ok, reason }).
+const { roomService } = require('./services/RoomService');
+const { sendResult } = require('./utils/sendResult');
 const Vote = require('./rooms/vote');
 
 // Middleware: получить или создать сессию.
@@ -36,7 +42,7 @@ router.post('/room', requireSession, (req, res) => {
 // GET /api/room/:code — состояние комнаты
 router.get('/room/:code', requireSession, (req, res) => {
   const room = roomService.getRoom(req.params.code);
-  if (!room) return res.status(404).json({ error: 'Room not found' });
+  if (!room) return res.status(404).json({ error: 'Комната не найдена' });
 
   const participants = [...room.participants.entries()].map(([sid, p]) => ({
     name: p.name,
@@ -57,47 +63,29 @@ router.get('/room/:code', requireSession, (req, res) => {
 
 // POST /api/room/:code/join — войти в комнату
 router.post('/room/:code/join', requireSession, (req, res) => {
-  const { name } = req.body;
-  if (!name || !name.trim()) return res.status(400).json({ error: 'Name required' });
+  const result = roomService.joinRoom(req.params.code, req.sessionId, req.body.name);
+  if (!result.success) return sendResult(res, result);
 
-  const room = roomService.getRoom(req.params.code);
-  if (!room) return res.status(404).json({ error: 'Room not found' });
-
-  room.join(req.sessionId, name.trim());
-  sessionService.updateSession(req.sessionId, { roomCode: room.code, name: name.trim() });
+  sessionService.updateSession(req.sessionId, { roomCode: result.data.room.code, name: result.data.name });
   res.json({ ok: true });
 });
 
 // POST /api/room/:code/start
 router.post('/room/:code/start', requireSession, (req, res) => {
-  const room = roomService.getRoom(req.params.code);
-  if (!room) return res.status(404).json({ error: 'Room not found' });
-  if (room.adminSessionId !== req.sessionId) return res.status(403).json({ error: 'Not admin' });
-
-  const quorum = req.body.quorum !== undefined ? Number(req.body.quorum) : undefined;
-  room.startRound(quorum);
-  res.json({ ok: true, quorum: room.quorum });
+  const result = roomService.startRound(req.params.code, req.sessionId, req.body.quorum);
+  sendResult(res, mapOk(result, (data) => ({ ok: true, quorum: data.quorum })));
 });
 
 // POST /api/room/:code/stop
 router.post('/room/:code/stop', requireSession, (req, res) => {
-  const room = roomService.getRoom(req.params.code);
-  if (!room) return res.status(404).json({ error: 'Room not found' });
-  if (room.adminSessionId !== req.sessionId) return res.status(403).json({ error: 'Not admin' });
-
-  const result = room.stopRound();
-  res.json({ ok: true, ...result });
+  const result = roomService.stopRound(req.params.code, req.sessionId);
+  sendResult(res, mapOk(result, (data) => ({ ok: true, ...data })));
 });
 
 // POST /api/room/:code/vote
 router.post('/room/:code/vote', requireSession, (req, res) => {
-  const { value } = req.body;
-  const room = roomService.getRoom(req.params.code);
-  if (!room) return res.status(404).json({ error: 'Room not found' });
-
-  const result = room.castVote(req.sessionId, value);
-  if (!result.ok) return res.status(400).json({ error: result.reason });
-  res.json({ ok: true, votedCount: result.votedCount });
+  const result = roomService.castVote(req.params.code, req.sessionId, req.body.value);
+  sendResult(res, mapOk(result, (data) => ({ ok: true, votedCount: data.votedCount })));
 });
 
 // GET /api/session
@@ -118,5 +106,11 @@ router.get('/session', requireSession, (req, res) => {
     hasVoted: room.participants.get(req.sessionId)?.hasVoted || false,
   });
 });
+
+// Небольшой хелпер: сохраняет ok/error-обёртку Result, но подменяет
+// содержимое data на нужную роуту форму ответа (совместимую со старым API).
+function mapOk(result, transform) {
+  return result.success ? { success: true, data: transform(result.data) } : result;
+}
 
 module.exports = router;

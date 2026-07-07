@@ -12,6 +12,7 @@ export enum ErrorCode {
   INVALID_VOTE = 'INVALID_VOTE',
   NAME_REQUIRED = 'NAME_REQUIRED',
   SESSION_NOT_FOUND = 'SESSION_NOT_FOUND',
+  INVALID_INPUT = 'INVALID_INPUT',
 }
 
 export interface AppError {
