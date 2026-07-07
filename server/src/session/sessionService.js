@@ -1,29 +1,26 @@
 const { nanoid } = require('nanoid');
-const { sessions } = require('../rooms/store');
+const { sessionRepository } = require('../repositories/SessionRepository');
 
 const SESSION_MAX_AGE = 86400; // 24 часа в секундах
 
 function createSession() {
   const sessionId = nanoid(32);
-  sessions.set(sessionId, { roomCode: null, name: null, hasVoted: false });
+  sessionRepository.create(sessionId, { roomCode: null, name: null, hasVoted: false });
   return sessionId;
 }
 
 // Восстанавливает сессию с существующим sessionId (например, после рестарта сервера)
 function restoreSession(sessionId) {
-  sessions.set(sessionId, { roomCode: null, name: null, hasVoted: false });
+  sessionRepository.create(sessionId, { roomCode: null, name: null, hasVoted: false });
   return sessionId;
 }
 
 function getSession(sessionId) {
-  return sessions.get(sessionId) || null;
+  return sessionRepository.findById(sessionId);
 }
 
 function updateSession(sessionId, data) {
-  const session = sessions.get(sessionId);
-  if (!session) return null;
-  Object.assign(session, data);
-  return session;
+  return sessionRepository.update(sessionId, data);
 }
 
 function setSessionCookie(res, sessionId) {

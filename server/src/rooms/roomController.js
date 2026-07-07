@@ -68,21 +68,32 @@ function setTopic(roomCode, sessionId, topic) {
   return { ok: true, topic: room.topic };
 }
 
+// Room.castVote возвращает Result<CastVoteData> (см. src/rooms/Rooms.ts).
+// Здесь переводим его в старый { ok, reason } формат, которым уже пользуется
+// socketHandler.js — сам socketHandler на Result переведём отдельным этапом.
+const REASON_BY_ERROR_CODE = {
+  ROUND_NOT_ACTIVE: 'not_active',
+  NOT_IN_ROOM: 'not_in_room',
+  ALREADY_VOTED: 'already_voted',
+};
+
 function castVote(roomCode, sessionId, value) {
   const room = roomService.getRoom(roomCode);
   if (!room) return { ok: false, reason: 'not_in_room' };
 
   const result = room.castVote(sessionId, value);
-  if (!result.ok) return result;
+  if (!result.success) {
+    return { ok: false, reason: REASON_BY_ERROR_CODE[result.error.code] || result.error.code };
+  }
 
   const response = {
     ok: true,
-    votedCount: result.votedCount,
+    votedCount: result.data.votedCount,
     quorum: room.quorum,
     voterName: room.participants.get(sessionId)?.name,
   };
 
-  if (result.quorumReached) {
+  if (result.data.quorumReached) {
     response.stopResult = room.stopRound();
   }
   return response;
@@ -99,7 +110,7 @@ function newRound(roomCode, sessionId) {
   const room = roomService.getRoom(roomCode);
   if (!isAdmin(room, sessionId)) return { ok: false, reason: 'not_admin' };
 
-  room.status = 'waiting';
+  room.newRound();
   return { ok: true };
 }
 
