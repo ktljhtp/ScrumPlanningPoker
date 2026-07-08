@@ -212,12 +212,13 @@ npm run dev
   
 ## Скриншоты
 
+окно авторизации:
 <img width="452" height="812" alt="image" src="https://github.com/user-attachments/assets/a9832381-1d1d-4fad-96b2-a01fec62e750" />
+окно администратора:
 <img width="495" height="722" alt="image" src="https://github.com/user-attachments/assets/a3b48c7a-2109-46ad-be50-69dfc7a79cee" />
+окно клиента:
 <img width="369" height="507" alt="image" src="https://github.com/user-attachments/assets/5a34e1e6-c414-4454-9306-04dd3b666c7f" />
-<img width="616" height="783" alt="image" src="https://github.com/user-attachments/assets/434a9769-3fad-4644-acde-cc89e9c4e277" />
-<img width="369" height="616" alt="image" src="https://github.com/user-attachments/assets/32643e25-ae64-48c4-8190-3765ac8b8fba" />
-<img width="444" height="906" alt="image" src="https://github.com/user-attachments/assets/3c72f806-94f1-4db3-b040-d83f3d29e322" />
+
 
 ## Автор
 
