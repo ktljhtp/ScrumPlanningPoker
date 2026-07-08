@@ -1,4 +1,4 @@
-<img width="585" height="878" alt="image" src="https://github.com/user-attachments/assets/0794c605-20af-4ec8-a666-c25a9de8704c" /># Scrum Planning Poker
+# Scrum Planning Poker
 
 Веб-приложение для покерного планирования в Scrum-командах. Участники подключаются к общей
 комнате и анонимно голосуют за оценку задачи картами из колоды Фибоначчи, а администратор видит
