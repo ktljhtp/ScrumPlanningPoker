@@ -1,4 +1,4 @@
-import { RoomService, roomService } from 'D:\ScrumPlanningPoker\server\src\services\RoomService.ts';
+import { RoomService, roomService } from '../services/RoomService';
 import { SessionService, sessionService } from '../services/SessionService';
 import { Result, ok, err, ErrorCode } from '../types/errors';
 

@@ -16,9 +16,9 @@ export default function JoinPage({ onJoined, initialCode, roomClosed }) {
     if (!name.trim() || !code.trim()) { setError('Заполни имя и код комнаты'); return; }
     setLoading(true);
     try {
-      await api.post(`/room/${code.toUpperCase()}/join`, { name: name.trim() });
+      const res = await api.post(`/room/${code.toUpperCase()}/join`, { name: name.trim() });
       localStorage.setItem('userName', name.trim());
-      onJoined({ roomCode: code.toUpperCase(), name: name.trim(), isAdmin: false });
+      onJoined({ roomCode: code.toUpperCase(), name: name.trim(), isAdmin: res.data.isAdmin });
     } catch (err) {
       setError(err.response?.data?.error || 'Ошибка подключения');
     } finally { setLoading(false); }

@@ -67,7 +67,11 @@ router.post('/room/:code/join', requireSession, (req, res) => {
   if (!result.success) return sendResult(res, result);
 
   sessionService.updateSession(req.sessionId, { roomCode: result.data.room.code, name: result.data.name });
-  res.json({ ok: true });
+  // isAdmin — честная серверная проверка (adminSessionId === sessionId), а не
+  // предположение клиента. Нужна для случая, когда сессия админа заходит в
+  // свою же комнату через форму "Войти", а не через "Создать комнату"
+  // (баг 5.1 — раньше клиент считал такую сессию обычным участником).
+  res.json({ ok: true, isAdmin: result.data.room.adminSessionId === req.sessionId });
 });
 
 // POST /api/room/:code/start

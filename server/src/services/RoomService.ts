@@ -76,7 +76,14 @@ export class RoomService {
     if (!roomResult.success) return roomResult;
 
     const room = roomResult.data;
-    room.join(sessionId, nameResult.data);
+
+    // Админ может попасть сюда, если открыл форму «Войти» в свою же комнату
+    // (например, во второй вкладке) — он не должен становиться обычным
+    // участником: не в списке участников, не учитывается в кворуме.
+    if (room.adminSessionId !== sessionId) {
+      room.join(sessionId, nameResult.data);
+    }
+
     return ok({ room, name: nameResult.data });
   }
 
