@@ -2,7 +2,7 @@ import { RoomService, roomService } from '../services/RoomService';
 import { SessionService, sessionService } from '../services/SessionService';
 import { Result, ok, err, ErrorCode } from '../types/errors';
 
-type RoomLike = any; // см. комментарий в RoomRepository.ts
+type RoomLike = any;
 
 interface ParticipantView {
   name: string;
@@ -24,15 +24,7 @@ interface CastVoteData {
 }
 
 /**
- * Контроллер комнаты для WebSocket-слоя. Каждый публичный метод получает
- * комнату из RoomService ровно один раз и возвращает Result<T> — дальше
- * socketHandler.js только решает, что и куда эмитить.
- *
- * Правила, общие с HTTP API (кто админ, можно ли стартовать/останавливать
- * раунд), не дублируются — для них контроллер зовёт RoomService напрямую
- * (closeRoom/startRound/stopRound). Здесь остаётся только то, что специфично
- * для сокет-транспорта: подключение сокета к уже существующему участнику,
- * авто-стоп раунда по достижению кворума при голосовании и т.п.
+ * Контроллер комнаты для WebSocket-слоя.
  */
 export class RoomController {
   constructor(
@@ -63,9 +55,7 @@ export class RoomController {
   }
 
   /**
-   * Подключение уже открытого сокета к комнате. Само добавление участника
-   * (room.join) происходит раньше, через HTTP POST /room/:code/join —
-   * здесь только собираем состояние для события room_joined.
+   * Подключение уже открытого сокета к комнате. 
    */
   joinRoom(roomCode: string, sessionId: string): Result<JoinRoomData> {
     const roomResult = this.requireRoom(roomCode);
@@ -112,11 +102,6 @@ export class RoomController {
     return ok({ topic: room.topic });
   }
 
-  /**
-   * В отличие от HTTP-версии (RoomService.castVote) здесь дополнительно
-   * авто-останавливаем раунд при достижении кворума — так было в исходном
-   * WS-контроллере, HTTP так никогда не делал (см. этап 4).
-   */
   castVote(roomCode: string, sessionId: string, value: unknown): Result<CastVoteData> {
     const roomResult = this.requireRoom(roomCode);
     if (!roomResult.success) return roomResult;
@@ -156,5 +141,4 @@ export class RoomController {
   }
 }
 
-/** Общий на процесс экземпляр — для мест, которым не нужен свой DI (socketHandler.js). */
 export const roomController = new RoomController(roomService, sessionService);

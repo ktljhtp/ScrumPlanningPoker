@@ -1,5 +1,3 @@
-// Тонкая обёртка для обратной совместимости со старыми вызовами
-// (roomController.js). Реальная логика — в src/services/SessionService.ts.
 const { sessionService, setSessionCookie, SESSION_MAX_AGE } = require('../services/SessionService');
 
 function createSession() {

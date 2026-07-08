@@ -11,7 +11,7 @@ const { sendResult } = require('./utils/sendResult');
 const Vote = require('./rooms/vote');
 
 // Middleware: получить или создать сессию.
-// Если cookie есть но сессия не найдена (например, после рестарта сервера) —
+// Если cookie есть но сессия не найдена  —
 // восстанавливаем сессию с тем же sessionId, чтобы adminSessionId в комнате совпал.
 function requireSession(req, res, next) {
   const sessionId = req.cookies.sessionId;
@@ -67,10 +67,7 @@ router.post('/room/:code/join', requireSession, (req, res) => {
   if (!result.success) return sendResult(res, result);
 
   sessionService.updateSession(req.sessionId, { roomCode: result.data.room.code, name: result.data.name });
-  // isAdmin — честная серверная проверка (adminSessionId === sessionId), а не
-  // предположение клиента. Нужна для случая, когда сессия админа заходит в
-  // свою же комнату через форму "Войти", а не через "Создать комнату"
-  // (баг 5.1 — раньше клиент считал такую сессию обычным участником).
+
   res.json({ ok: true, isAdmin: result.data.room.adminSessionId === req.sessionId });
 });
 
@@ -111,8 +108,6 @@ router.get('/session', requireSession, (req, res) => {
   });
 });
 
-// Небольшой хелпер: сохраняет ok/error-обёртку Result, но подменяет
-// содержимое data на нужную роуту форму ответа (совместимую со старым API).
 function mapOk(result, transform) {
   return result.success ? { success: true, data: transform(result.data) } : result;
 }

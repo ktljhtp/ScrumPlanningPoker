@@ -1,11 +1,5 @@
 import { ErrorCode, Result } from '../types/errors';
 
-/**
- * Клиент (client/src/pages/JoinPage.jsx) сейчас читает `err.response.data.error`
- * и показывает его пользователю как есть — поэтому `error` должен остаться
- * читаемым текстом, как было. `code` — новое поле, для будущего перехода
- * клиента на обработку по коду вместо текста (см. ТЗ, раздел 3.1).
- */
 const HTTP_STATUS_BY_ERROR_CODE: Record<ErrorCode, number> = {
   [ErrorCode.ROOM_NOT_FOUND]: 404,
   [ErrorCode.NOT_IN_ROOM]: 400,
@@ -18,7 +12,6 @@ const HTTP_STATUS_BY_ERROR_CODE: Record<ErrorCode, number> = {
   [ErrorCode.INVALID_INPUT]: 400,
 };
 
-/** `res` типизирован слабо (`any`), чтобы не тянуть @types/express ради одной функции. */
 export function sendResult<T>(res: any, result: Result<T>, successStatus = 200): void {
   if (result.success) {
     res.status(successStatus).json(result.data);

@@ -1,7 +1,3 @@
-// Обработчик сокет-событий. Вся бизнес-логика — в RoomController
-// (src/controllers/RoomController.ts) — здесь только маршрутизация:
-// принять событие, вызвать контроллер, разослать Result нужным клиентам.
-
 const { roomController } = require('../controllers/RoomController');
 
 function parseCookies(cookieHeader) {

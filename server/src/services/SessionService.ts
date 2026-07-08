@@ -6,6 +6,7 @@ export const SESSION_MAX_AGE = 86400; // 24 часа в секундах
 export class SessionService {
   constructor(private sessions: SessionRepository) {}
 
+  /** Создаёт новую сессию и возвращает её ID. */
   create(): string {
     const sessionId = nanoid(32);
     this.sessions.create(sessionId, { roomCode: null, name: null, hasVoted: false });

@@ -1,7 +1,5 @@
 /**
- * Единый набор кодов ошибок для всего сервера. Клиент (веб или сокет)
- * должен переключаться по `code`, а не по тексту `message` — текст можно
- * менять/переводить, не ломая клиентскую логику.
+ * Единый набор кодов ошибок для всего сервера.
  */
 export enum ErrorCode {
   ROOM_NOT_FOUND = 'ROOM_NOT_FOUND',
@@ -21,12 +19,6 @@ export interface AppError {
   details?: unknown;
 }
 
-/**
- * Result — обёртка над возвращаемым значением, вдохновлённая Rust'овским
- * Result<T, E>. Вместо `throw` сервисы/репозитории возвращают одну из двух
- * форм, и вызывающий код обязан явно проверить `success` перед тем как
- * достать `data`.
- */
 export type Result<T> = { success: true; data: T } | { success: false; error: AppError };
 
 export function ok<T>(data: T): Result<T> {

@@ -1,12 +1,3 @@
-/**
- * Бизнес-логика для комнат. Ничего не знает про req/res и не трогает Map
- * напрямую — только через RoomRepository (DI через конструктор, см. низ
- * файла — там же собран синглтон для обратной совместимости).
- *
- * Все публичные методы, которые могут завершиться неудачей, возвращают
- * Result<T> вместо throw — единый формат для всего сервера (раздел 3.1 ТЗ).
- */
-
 import { RoomRepository, roomRepository } from '../repositories/RoomRepository';
 import { Result, ok, err, ErrorCode } from '../types/errors';
 import { validateName, validateQuorum } from '../validators/requestValidators';
@@ -25,9 +16,7 @@ const ROOM_MAX_AGE_MS = 24 * 60 * 60 * 1000;
 export class RoomService {
   constructor(private rooms: RoomRepository) {}
 
-  // --- простые операции без валидации (используются внутри сервера,
-  // например roomController.js уже сам проверяет права до вызова) ---
-
+  // --- простые операции без валидации  ---
   createRoom(adminSessionId: string, options: CreateRoomOptions = {}): RoomLike {
     const code = this.rooms.generateUniqueCode();
     const room = new Room(code, adminSessionId, options);
@@ -53,7 +42,7 @@ export class RoomService {
     }
   }
 
-  // --- валидированные операции для API-слоя (routes.js) ---
+  // --- валидированные операции для API-слоя  ---
 
   private requireRoom(code: string): Result<RoomLike> {
     const room = this.rooms.findByCode(code);
@@ -77,9 +66,6 @@ export class RoomService {
 
     const room = roomResult.data;
 
-    // Админ может попасть сюда, если открыл форму «Войти» в свою же комнату
-    // (например, во второй вкладке) — он не должен становиться обычным
-    // участником: не в списке участников, не учитывается в кворуме.
     if (room.adminSessionId !== sessionId) {
       room.join(sessionId, nameResult.data);
     }
@@ -135,5 +121,4 @@ export class RoomService {
   }
 }
 
-/** Общий на процесс экземпляр — используется старыми модулями через шим-обёртки. */
 export const roomService = new RoomService(roomRepository);

@@ -4,14 +4,6 @@ import { Server as SocketIOServer } from 'socket.io';
 import cookieParser from 'cookie-parser';
 import cors from 'cors';
 
-/**
- * Класс, который централизует инициализацию сервера (раздел 1.5 ТЗ):
- * Express, HTTP-сервер, Socket.IO, middleware, роуты, socket-обработчики.
- *
- * Роуты и socket-обработчик можно подменить через конструктор — это даёт
- * тестируемость (раздел 7 ТЗ): в тестах можно передать фейковый router или
- * заглушку attachSocketHandlers вместо реальных.
- */
 export interface AppServerOptions {
   port?: number | string;
   corsOrigin?: string;
@@ -41,15 +33,13 @@ export class AppServer {
   }
 
   private configureMiddleware(corsOrigin: string): void {
+    // Стандартный набор middleware для JSON API с CORS и куками
     this.app.use(cors({ origin: corsOrigin, credentials: true }));
     this.app.use(express.json());
     this.app.use(cookieParser());
   }
 
   private configureRoutes(routes?: Router): void {
-    // require, а не import — иначе циклический разбор модулей мог бы
-    // подтянуть routes.js раньше, чем нужно; здесь порядок важен только
-    // при первом реальном вызове конструктора.
     const router: Router = routes || require('../routes');
     this.app.use('/api', router);
   }
@@ -59,6 +49,7 @@ export class AppServer {
     handler(this.io);
   }
 
+  /** Запускает HTTP-сервер и возвращает Promise, который резолвится после старта. */
   start(): Promise<void> {
     return new Promise((resolve) => {
       this.httpServer.listen(this.port, () => {
@@ -68,6 +59,7 @@ export class AppServer {
     });
   }
 
+  /** Аккуратно останавливает сервер. Полезно для тестов и gracefull shutdown. */
   stop(): Promise<void> {
     return new Promise((resolve, reject) => {
       this.httpServer.close((error) => (error ? reject(error) : resolve()));
