@@ -33,7 +33,8 @@ interface StopRoundResult {
   resultMode: ResultMode;
 }
 
-const DEFAULT_DECK: CardValue[] = [0, 1, 2, 3, 5, 8, 13, 20, 40, 100, '?', '∞'];
+const DEFAULT_DECK: CardValue[] = [0, 0.5, 1, 2, 3, 4, 5, 6, 7, 8, '?', '∞'];
+const DEFAULT_QUORUM = 999;
 
 class Room {
   code: string;
@@ -98,16 +99,14 @@ class Room {
   }
 
   startRound(quorum?: number | string): void {
-    this.status = RoomStatus.ACTIVE;
-    this.currentRound++;
-    if (quorum !== undefined && quorum !== null) {
-      this.quorum = Number(quorum);
-    }
-    for (const p of this.participants.values()) {
-      p.hasVoted = false;
-      p.vote = null;
-    }
+  this.status = RoomStatus.ACTIVE;
+  this.currentRound++;
+  this.quorum = quorum !== undefined && quorum !== null ? Number(quorum) : DEFAULT_QUORUM;
+  for (const p of this.participants.values()) {
+    p.hasVoted = false;
+    p.vote = null;
   }
+}
 
   stopRound(): StopRoundResult {
     this.status = RoomStatus.STOPPED;

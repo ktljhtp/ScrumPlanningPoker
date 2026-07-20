@@ -41,9 +41,6 @@ module.exports = function (io) {
         resultMode: data.room.resultMode,
       });
 
-      // Не уведомляем остальных о "присоединении" админа — он не участник
-      // модели комнаты (см. RoomService.joinRoom), и не должен появляться
-      // в чужих списках участников просто оттого, что открыл вкладку.
       if (!data.isAdmin) {
         socket.to(roomCode).emit('participant_joined', { name });
       }
