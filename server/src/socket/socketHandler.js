@@ -1,5 +1,3 @@
-const { roomController } = require('../controllers/RoomController');
-
 function parseCookies(cookieHeader) {
   const cookies = {};
   if (!cookieHeader) return cookies;
@@ -10,7 +8,7 @@ function parseCookies(cookieHeader) {
   return cookies;
 }
 
-module.exports = function (io) {
+module.exports = function (io, { roomController }) {
   io.on('connection', (socket) => {
     const cookies = parseCookies(socket.handshake.headers.cookie);
     const sessionId = cookies.sessionId;

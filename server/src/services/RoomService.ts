@@ -1,4 +1,4 @@
-import { RoomRepository, roomRepository } from '../repositories/RoomRepository';
+import { IRoomRepository, roomRepository } from '../repositories/RoomRepository';
 import { Result, ok, err, ErrorCode } from '../types/errors';
 import { validateName, validateQuorum } from '../validators/requestValidators';
 
@@ -14,14 +14,14 @@ export interface CreateRoomOptions {
 const ROOM_MAX_AGE_MS = 24 * 60 * 60 * 1000;
 
 export class RoomService {
-  constructor(private rooms: RoomRepository) {}
+  constructor(private rooms: IRoomRepository) {}
 
   // --- простые операции без валидации  ---
   createRoom(adminSessionId: string, options: CreateRoomOptions = {}): RoomLike {
-    const code = this.rooms.generateUniqueCode();
-    const room = new Room(code, adminSessionId, options);
-    this.rooms.save(room);
-    return room;
+    // Генерация кода и сохранение — теперь одна атомарная операция репозитория
+    // (createUnique), а не два отдельных вызова с промежутком между ними.
+    // См. комментарий в RoomRepository.ts.
+    return this.rooms.createUnique((code) => new Room(code, adminSessionId, options));
   }
 
   getRoom(code: string): RoomLike | null {

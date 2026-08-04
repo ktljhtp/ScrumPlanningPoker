@@ -8,8 +8,6 @@ type ResultMode = 'median' | 'average';
 
 interface Participant {
   name: string;
-  hasVoted: boolean;
-  vote: VoteModule.Vote | null;
 }
 
 interface RoomOptions {
@@ -40,6 +38,13 @@ class Room {
   code: string;
   adminSessionId: string;
   participants: Map<string, Participant>;
+  /**
+   * Голоса текущего раунда — отдельно от participants. Раньше vote/hasVoted
+   * жили прямо в Participant, из-за чего "кто в комнате" и "кто проголосовал"
+   * было одной и той же структурой, а hasVoted дублировал факт наличия vote.
+   * Теперь hasVoted не хранится, а вычисляется как this.votes.has(sessionId).
+   */
+  private votes: Map<string, VoteModule.Vote>;
   status: RoomStatus;
   quorum: number;
   deck: CardValue[];
@@ -52,6 +57,7 @@ class Room {
     this.code = code;
     this.adminSessionId = adminSessionId;
     this.participants = new Map();
+    this.votes = new Map();
     this.status = RoomStatus.WAITING;
     this.quorum = options.quorum ? Number(options.quorum) : 999;
     this.deck = options.deck || DEFAULT_DECK;
@@ -62,14 +68,24 @@ class Room {
   }
 
   join(sessionId: string, name: string): void {
-    this.participants.set(sessionId, { name, hasVoted: false, vote: null });
+    this.participants.set(sessionId, { name });
   }
 
   removeParticipant(sessionId: string): string | null {
     const participant = this.participants.get(sessionId);
     if (!participant) return null;
     this.participants.delete(sessionId);
+    this.votes.delete(sessionId);
     return participant.name;
+  }
+
+  hasVoted(sessionId: string): boolean {
+    return this.votes.has(sessionId);
+  }
+
+  /** Возвращает «сырое» значение голоса участника — то, что можно безопасно отдать клиенту. */
+  getVote(sessionId: string): CardValue | null {
+    return VoteModule.unwrap(this.votes.get(sessionId));
   }
 
   /**
@@ -82,46 +98,42 @@ class Room {
     if (this.status !== RoomStatus.ACTIVE) {
       return err(ErrorCode.ROUND_NOT_ACTIVE, 'Раунд ещё не запущен');
     }
-    const participant = this.participants.get(sessionId);
-    if (!participant) {
+    if (!this.participants.has(sessionId)) {
       return err(ErrorCode.NOT_IN_ROOM, 'Пользователь не находится в комнате');
     }
-    if (participant.hasVoted) {
+    if (this.votes.has(sessionId)) {
       return err(ErrorCode.ALREADY_VOTED, 'Голос в этом раунде уже принят');
     }
 
-    participant.vote = VoteModule.from(value);
-    participant.hasVoted = true;
+    this.votes.set(sessionId, VoteModule.from(value));
 
-    const votedCount = [...this.participants.values()].filter((p) => p.hasVoted).length;
+    const votedCount = this.votes.size;
     const quorumReached = votedCount >= this.quorum;
     return ok({ votedCount, quorumReached });
   }
 
   startRound(quorum?: number | string): void {
-  this.status = RoomStatus.ACTIVE;
-  this.currentRound++;
-  this.quorum = quorum !== undefined && quorum !== null ? Number(quorum) : DEFAULT_QUORUM;
-  for (const p of this.participants.values()) {
-    p.hasVoted = false;
-    p.vote = null;
+    this.status = RoomStatus.ACTIVE;
+    this.currentRound++;
+    this.quorum = quorum !== undefined && quorum !== null ? Number(quorum) : DEFAULT_QUORUM;
+    this.votes.clear();
   }
-}
 
   stopRound(): StopRoundResult {
     this.status = RoomStatus.STOPPED;
 
-    const numericValues = [...this.participants.values()]
-      .filter((p): p is Participant & { vote: VoteModule.NumberVote } => p.hasVoted && VoteModule.isNumber(p.vote))
-      .map((p) => p.vote.value);
+    const numericValues = [...this.votes.values()]
+      .filter(VoteModule.isNumber)
+      .map((vote) => vote.value);
 
     const metrics = computeMetrics(numericValues);
 
-    const allVotes = [...this.participants.entries()]
-      .filter(([, p]) => p.hasVoted)
-      .map(([, p]) => ({ name: p.name, vote: VoteModule.unwrap(p.vote) }));
+    const allVotes = [...this.votes.entries()].map(([sessionId, vote]) => ({
+      name: this.participants.get(sessionId)?.name ?? '',
+      vote: VoteModule.unwrap(vote),
+    }));
 
-    const votedCount = [...this.participants.values()].filter((p) => p.hasVoted).length;
+    const votedCount = this.votes.size;
 
     // result — значение по текущему resultMode, оставлено для обратной
     // совместимости с фронтом. median/average/distribution — уже готовые

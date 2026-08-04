@@ -1,5 +1,5 @@
-import { RoomService, roomService } from '../services/RoomService';
-import { SessionService, sessionService } from '../services/SessionService';
+import { RoomService } from '../services/RoomService';
+import { SessionService } from '../services/SessionService';
 import { Result, ok, err, ErrorCode } from '../types/errors';
 
 type RoomLike = any;
@@ -33,9 +33,9 @@ export class RoomController {
   ) {}
 
   private getParticipantsList(room: RoomLike): ParticipantView[] {
-    return [...room.participants.entries()].map(([, p]: [string, any]) => ({
+    return [...room.participants.entries()].map(([sessionId, p]: [string, any]) => ({
       name: p.name,
-      hasVoted: p.hasVoted,
+      hasVoted: room.hasVoted(sessionId),
     }));
   }
 
@@ -66,7 +66,7 @@ export class RoomController {
       room,
       isAdmin: room.adminSessionId === sessionId,
       participants: this.getParticipantsList(room),
-      hasVoted: room.participants.get(sessionId)?.hasVoted || false,
+      hasVoted: room.hasVoted(sessionId),
     });
   }
 
@@ -140,5 +140,3 @@ export class RoomController {
     return ok({ name: participant.name });
   }
 }
-
-export const roomController = new RoomController(roomService, sessionService);

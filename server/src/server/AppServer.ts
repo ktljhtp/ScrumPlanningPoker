@@ -3,12 +3,15 @@ import http from 'http';
 import { Server as SocketIOServer } from 'socket.io';
 import cookieParser from 'cookie-parser';
 import cors from 'cors';
+import { RoomController } from '../controllers/RoomController';
+import { roomService } from '../services/RoomService';
+import { sessionService } from '../services/SessionService';
 
 export interface AppServerOptions {
   port?: number | string;
   corsOrigin?: string;
   routes?: Router;
-  attachSocketHandlers?: (io: SocketIOServer) => void;
+  attachSocketHandlers?: (io: SocketIOServer, deps: { roomController: RoomController }) => void;
 }
 
 export class AppServer {
@@ -16,10 +19,19 @@ export class AppServer {
   private httpServer: http.Server;
   private io: SocketIOServer;
   private port: number;
+  private roomController: RoomController;
 
   constructor(options: AppServerOptions = {}) {
     const corsOrigin = options.corsOrigin || 'http://localhost:5173';
     this.port = Number(options.port || process.env.PORT || 3001);
+
+    // AppServer — композиционный корень: контроллеры собираются здесь,
+    // а не живут как глобальные синглтоны в своих модулях (см. было раньше
+    // `export const roomController = new RoomController(...)` в
+    // RoomController.ts). Так AppServer явно владеет графом зависимостей
+    // и может передать нужные экземпляры туда, где они требуются
+    // (сокеты, роуты, тесты с изолированным инстансом сервера).
+    this.roomController = new RoomController(roomService, sessionService);
 
     this.app = express();
     this.httpServer = http.createServer(this.app);
@@ -44,9 +56,9 @@ export class AppServer {
     this.app.use('/api', router);
   }
 
-  private configureSockets(attach?: (io: SocketIOServer) => void): void {
+  private configureSockets(attach?: (io: SocketIOServer, deps: { roomController: RoomController }) => void): void {
     const handler = attach || require('../socket/socketHandler');
-    handler(this.io);
+    handler(this.io, { roomController: this.roomController });
   }
 
   /** Запускает HTTP-сервер и возвращает Promise, который резолвится после старта. */

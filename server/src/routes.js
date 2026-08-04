@@ -8,7 +8,6 @@ const sessionService = require('./session/sessionService');
 // который работает через WebSocket и пока живёт на старом { ok, reason }).
 const { roomService } = require('./services/RoomService');
 const { sendResult } = require('./utils/sendResult');
-const Vote = require('./rooms/vote');
 
 // Middleware: получить или создать сессию.
 // Если cookie есть но сессия не найдена  —
@@ -46,8 +45,8 @@ router.get('/room/:code', requireSession, (req, res) => {
 
   const participants = [...room.participants.entries()].map(([sid, p]) => ({
     name: p.name,
-    hasVoted: p.hasVoted,
-    vote: room.status === 'stopped' ? Vote.unwrap(p.vote) : undefined,
+    hasVoted: room.hasVoted(sid),
+    vote: room.status === 'stopped' ? room.getVote(sid) : undefined,
   }));
 
   res.json({
@@ -104,7 +103,7 @@ router.get('/session', requireSession, (req, res) => {
     name: session.name,
     isAdmin: room.adminSessionId === req.sessionId,
     roomStatus: room.status,
-    hasVoted: room.participants.get(req.sessionId)?.hasVoted || false,
+    hasVoted: room.hasVoted(req.sessionId),
   });
 });
 
