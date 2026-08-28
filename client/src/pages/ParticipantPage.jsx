@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import CardDeck from '../components/CardDeck';
 import { useSocket } from '../context/SocketContext';
+import NumberBaseGame from '../components/NumberBaseGame';
 
 export default function ParticipantPage({ roomCode, name, onLeft }) {
   const { socket } = useSocket();
@@ -105,46 +106,39 @@ export default function ParticipantPage({ roomCode, name, onLeft }) {
 
   return (
     <div style={s.page}>
-
       {/* Шапка */}
       <pre style={s.header}>
-  {(() => {
-    const W = 34;
-
-// Функция для центрирования текста
-const center = (text) => {
-  const padding = Math.floor((W - text.length) / 2);
-  return ' '.repeat(padding) + text + ' '.repeat(W - text.length - padding);
-};
-
-// Функция для левого выравнивания с отступом
-const leftWithPadding = (prefix, value) => {
-  const full = '   ' + prefix + value; // 3 пробела слева
-  if (full.length >= W) return full.slice(0, W);
-  return full + ' '.repeat(W - full.length);
-};
-
-// Данные
-const safeRoomCode = String(roomCode || '').slice(0, 10);
-const safeName = String(name || '').slice(0, 20);
-
-// Формируем шапку
-const header = `
+        {(() => {
+          const W = 34;
+          const center = (text) => {
+            const padding = Math.floor((W - text.length) / 2);
+            return ' '.repeat(padding) + text + ' '.repeat(W - text.length - padding);
+          };
+          const leftWithPadding = (prefix, value) => {
+            const full = '   ' + prefix + value;
+            if (full.length >= W) return full.slice(0, W);
+            return full + ' '.repeat(W - full.length);
+          };
+          const safeRoomCode = String(roomCode || '').slice(0, 10);
+          const safeName = String(name || '').slice(0, 20);
+          
+          return `
 ┌${'─'.repeat(W)}┐
 ${center('SCRUM POKER')}
 ${leftWithPadding('комната: ', safeRoomCode)}
 ${leftWithPadding('участник: ', safeName)}
 └${'─'.repeat(W)}┘
 `;
-    return header;
-  })()}
-</pre>
+        })()}
+      </pre>
+      
       {topic && (
-  <div>
-    <p style={{ ...s.dim, margin: '0 0 -5px' }}>тема:</p>
-    <p style={{ margin: 0, fontWeight: 'bold' }}>{topic}</p>
-  </div>
-)}
+        <div>
+          <p style={{ ...s.dim, margin: '0 0 -5px' }}>тема:</p>
+          <p style={{ margin: 0, fontWeight: 'bold' }}>{topic}</p>
+        </div>
+      )}
+      
       {/* Статус */}
       <p style={s.statusLine}>
         {'> '}<strong>{statusMap[status] || status}</strong>
@@ -197,6 +191,9 @@ ${leftWithPadding('участник: ', safeName)}
           </button>
         )}
       </div>
+
+      {/* Мини-игра */}
+      <NumberBaseGame />
     </div>
   );
 }
